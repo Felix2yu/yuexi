@@ -17,14 +17,21 @@ func CalculateMonthData(person db.Person, records []db.Record, year, month int) 
 			continue
 		}
 
-		periodEnd := recStart.AddDate(0, 0, person.PeriodLength-1)
+		// Use actual end_date if available, otherwise use period_length
+		var periodEnd time.Time
+		if rec.EndDate != nil && *rec.EndDate != "" {
+			periodEnd, _ = time.Parse("2006-01-02", *rec.EndDate)
+		}
+		if periodEnd.IsZero() {
+			periodEnd = recStart.AddDate(0, 0, person.PeriodLength-1)
+		}
 
-		// Actual period
 		if rangesOverlap(recStart, periodEnd, startOfMonth, endOfMonth) {
 			periods = append(periods, db.DateRange{
-				Start: recStart.Format("2006-01-02"),
-				End:   periodEnd.Format("2006-01-02"),
-				Type:  "period",
+				Start:    recStart.Format("2006-01-02"),
+				End:      periodEnd.Format("2006-01-02"),
+				Type:     "period",
+				PersonID: person.ID,
 			})
 		}
 
@@ -35,29 +42,31 @@ func CalculateMonthData(person db.Person, records []db.Record, year, month int) 
 
 			if rangesOverlap(nextPeriodStart, nextPeriodEnd, startOfMonth, endOfMonth) {
 				periods = append(periods, db.DateRange{
-					Start: nextPeriodStart.Format("2006-01-02"),
-					End:   nextPeriodEnd.Format("2006-01-02"),
-					Type:  "predicted_period",
+					Start:    nextPeriodStart.Format("2006-01-02"),
+					End:      nextPeriodEnd.Format("2006-01-02"),
+					Type:     "predicted_period",
+					PersonID: person.ID,
 				})
 			}
 
-			// Ovulation day: 14 days before next period start
 			ovulationDay := nextPeriodStart.AddDate(0, 0, -14)
 			ovulationStart := ovulationDay.AddDate(0, 0, -5)
 			ovulationEnd := ovulationDay.AddDate(0, 0, 1)
 
 			if rangesOverlap(ovulationStart, ovulationEnd, startOfMonth, endOfMonth) {
 				ovulations = append(ovulations, db.DateRange{
-					Start: ovulationStart.Format("2006-01-02"),
-					End:   ovulationEnd.Format("2006-01-02"),
-					Type:  "ovulation_window",
+					Start:    ovulationStart.Format("2006-01-02"),
+					End:      ovulationEnd.Format("2006-01-02"),
+					Type:     "ovulation_window",
+					PersonID: person.ID,
 				})
 			}
 			if ovulationDay.After(startOfMonth.AddDate(0, 0, -1)) && ovulationDay.Before(endOfMonth.AddDate(0, 0, 1)) {
 				ovulations = append(ovulations, db.DateRange{
-					Start: ovulationDay.Format("2006-01-02"),
-					End:   ovulationDay.Format("2006-01-02"),
-					Type:  "ovulation_day",
+					Start:    ovulationDay.Format("2006-01-02"),
+					End:      ovulationDay.Format("2006-01-02"),
+					Type:     "ovulation_day",
+					PersonID: person.ID,
 				})
 			}
 		}

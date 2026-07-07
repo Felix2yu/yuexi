@@ -1,11 +1,25 @@
 package db
 
-import "time"
+import (
+	"database/sql"
+	"strings"
+	"time"
+)
+
+func normalizeDate(s string) string {
+	if s == "" {
+		return s
+	}
+	if idx := strings.Index(s, "T"); idx != -1 {
+		return s[:idx]
+	}
+	return s
+}
 
 // Person CRUD
 
 func GetAllPersons() ([]Person, error) {
-	rows, err := DB.Query("SELECT id, name, cycle_length, period_length, created_at FROM persons ORDER BY id")
+	rows, err := DB.Query("SELECT id, name, cycle_length, period_length, COALESCE(created_at, '') FROM persons ORDER BY id")
 	if err != nil {
 		return nil, err
 	}
@@ -24,7 +38,7 @@ func GetAllPersons() ([]Person, error) {
 
 func GetPerson(id int64) (*Person, error) {
 	var p Person
-	err := DB.QueryRow("SELECT id, name, cycle_length, period_length, created_at FROM persons WHERE id = ?", id).
+	err := DB.QueryRow("SELECT id, name, cycle_length, period_length, COALESCE(created_at, '') FROM persons WHERE id = ?", id).
 		Scan(&p.ID, &p.Name, &p.CycleLength, &p.PeriodLength, &p.CreatedAt)
 	if err != nil {
 		return nil, err
@@ -57,20 +71,52 @@ func DeletePerson(id int64) error {
 	return err
 }
 
-// Record CRUD
-
-func GetRecordsByPerson(personID int64) ([]Record, error) {
-	rows, err := DB.Query("SELECT id, person_id, start_date, end_date, note, created_at FROM records WHERE person_id = ? ORDER BY start_date DESC", personID)
+func GetAllRecords() ([]Record, error) {
+	rows, err := DB.Query("SELECT id, person_id, start_date, end_date, COALESCE(note, ''), COALESCE(created_at, '') FROM records ORDER BY start_date DESC")
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	var records []Record
+	records := make([]Record, 0)
 	for rows.Next() {
 		var r Record
-		if err := rows.Scan(&r.ID, &r.PersonID, &r.StartDate, &r.EndDate, &r.Note, &r.CreatedAt); err != nil {
+		var endDate sql.NullString
+		if err := rows.Scan(&r.ID, &r.PersonID, &r.StartDate, &endDate, &r.Note, &r.CreatedAt); err != nil {
 			return nil, err
+		}
+		r.StartDate = normalizeDate(r.StartDate)
+		r.CreatedAt = normalizeDate(r.CreatedAt)
+		if endDate.Valid {
+			s := normalizeDate(endDate.String)
+			r.EndDate = &s
+		}
+		records = append(records, r)
+	}
+	return records, nil
+}
+
+// Record CRUD
+
+func GetRecordsByPerson(personID int64) ([]Record, error) {
+	rows, err := DB.Query("SELECT id, person_id, start_date, end_date, COALESCE(note, ''), COALESCE(created_at, '') FROM records WHERE person_id = ? ORDER BY start_date DESC", personID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	records := make([]Record, 0)
+	for rows.Next() {
+		var r Record
+		var endDate sql.NullString
+		if err := rows.Scan(&r.ID, &r.PersonID, &r.StartDate, &endDate, &r.Note, &r.CreatedAt); err != nil {
+			return nil, err
+		}
+		r.StartDate = normalizeDate(r.StartDate)
+		r.CreatedAt = normalizeDate(r.CreatedAt)
+		if endDate.Valid {
+			s := normalizeDate(endDate.String)
+			r.EndDate = &s
 		}
 		records = append(records, r)
 	}
@@ -81,19 +127,26 @@ func GetRecordsByPersonAndMonth(personID int64, year, month int) ([]Record, erro
 	startDate := time.Date(year, time.Month(month), 1, 0, 0, 0, 0, time.Local).Format("2006-01-02")
 	endDate := time.Date(year, time.Month(month+1), 0, 0, 0, 0, 0, time.Local).Format("2006-01-02")
 
-	rows, err := DB.Query(`SELECT id, person_id, start_date, end_date, note, created_at 
-		FROM records WHERE person_id = ? AND start_date <= ? AND (end_date IS NULL OR end_date >= ?) 
+	rows, err := DB.Query(`SELECT id, person_id, start_date, end_date, COALESCE(note, ''), COALESCE(created_at, '')
+		FROM records WHERE person_id = ? AND start_date <= ? AND (end_date IS NULL OR end_date >= ?)
 		ORDER BY start_date`, personID, endDate, startDate)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	var records []Record
+	records := make([]Record, 0)
 	for rows.Next() {
 		var r Record
-		if err := rows.Scan(&r.ID, &r.PersonID, &r.StartDate, &r.EndDate, &r.Note, &r.CreatedAt); err != nil {
+		var endDate sql.NullString
+		if err := rows.Scan(&r.ID, &r.PersonID, &r.StartDate, &endDate, &r.Note, &r.CreatedAt); err != nil {
 			return nil, err
+		}
+		r.StartDate = normalizeDate(r.StartDate)
+		r.CreatedAt = normalizeDate(r.CreatedAt)
+		if endDate.Valid {
+			s := normalizeDate(endDate.String)
+			r.EndDate = &s
 		}
 		records = append(records, r)
 	}
@@ -123,10 +176,17 @@ func DeleteRecord(id int64) error {
 
 func getRecord(id int64) (*Record, error) {
 	var r Record
-	err := DB.QueryRow("SELECT id, person_id, start_date, end_date, note, created_at FROM records WHERE id = ?", id).
-		Scan(&r.ID, &r.PersonID, &r.StartDate, &r.EndDate, &r.Note, &r.CreatedAt)
+	var endDate sql.NullString
+	err := DB.QueryRow("SELECT id, person_id, start_date, end_date, COALESCE(note, ''), COALESCE(created_at, '') FROM records WHERE id = ?", id).
+		Scan(&r.ID, &r.PersonID, &r.StartDate, &endDate, &r.Note, &r.CreatedAt)
 	if err != nil {
 		return nil, err
+	}
+	r.StartDate = normalizeDate(r.StartDate)
+	r.CreatedAt = normalizeDate(r.CreatedAt)
+	if endDate.Valid {
+		s := normalizeDate(endDate.String)
+		r.EndDate = &s
 	}
 	return &r, nil
 }

@@ -1,23 +1,19 @@
 {{define "content"}}
 <div x-data="calendar()" x-init="init()">
-    <!-- Person selector -->
-    <div class="mb-6 flex items-center gap-4">
-        <label class="text-sm text-gray-600">当前查看：</label>
-        <select x-model="personId" @change="loadData()" class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-pink-500 focus:border-pink-500">
-            {{range .Persons}}
-            <option value="{{.ID}}" {{if eq .ID $.CurrentPerson}}selected{{end}}>{{.Name}}</option>
-            {{end}}
-        </select>
-        {{if .Person}}
-        <span class="text-sm text-gray-500">
-            周期 {{.Person.CycleLength}}天 · 经期 {{.Person.PeriodLength}}天
-        </span>
+    <!-- Person legend with colors -->
+    <div class="mb-6 flex flex-wrap items-center gap-3">
+        <span class="text-sm text-gray-600 font-medium">人员：</span>
+        {{range $i, $p := .Persons}}
+        <label class="flex items-center gap-1.5 cursor-pointer">
+            <input type="checkbox" :checked="personColors[{{$p.ID}}] !== undefined" @change="togglePerson({{$p.ID}})" class="rounded">
+            <span class="w-3 h-3 rounded-full" :style="'background-color:' + getColor({{$p.ID}})"></span>
+            <span class="text-sm text-gray-700">{{$p.Name}}</span>
+        </label>
         {{end}}
     </div>
 
     <!-- Calendar -->
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <!-- Month navigation -->
         <div class="flex items-center justify-between mb-4">
             <button @click="prevMonth()" class="p-2 hover:bg-gray-100 rounded-lg transition">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
@@ -28,7 +24,6 @@
             </button>
         </div>
 
-        <!-- Weekday headers -->
         <div class="grid grid-cols-7 gap-1 mb-2">
             <div class="text-center text-xs font-medium text-gray-500 py-1">日</div>
             <div class="text-center text-xs font-medium text-gray-500 py-1">一</div>
@@ -39,28 +34,25 @@
             <div class="text-center text-xs font-medium text-gray-500 py-1">六</div>
         </div>
 
-        <!-- Calendar grid -->
         <div class="grid grid-cols-7 gap-1">
             <template x-for="day in calendarDays" :key="day.key">
-                <div class="relative min-h-[48px] border rounded-lg p-1 cursor-pointer transition-all"
+                <div class="relative min-h-[52px] border rounded-lg p-1 cursor-pointer transition-all"
                      :class="dayClasses(day)"
                      @click="selectDay(day)">
                     <div class="text-sm font-medium"
                          :class="{'text-pink-600 font-bold': day.isToday, 'text-gray-900': !day.isToday && day.inMonth, 'text-gray-300': !day.inMonth}"
                          x-text="day.date">
                     </div>
-                    <div class="flex gap-0.5 mt-0.5">
-                        <template x-if="day.isPeriod">
-                            <div class="w-1.5 h-1.5 rounded-full bg-red-500"></div>
+                    <!-- Person dots -->
+                    <div class="flex flex-wrap gap-0.5 mt-0.5">
+                        <template x-for="pid in day.personPeriods" :key="'p-'+pid">
+                            <div class="w-1.5 h-1.5 rounded-full" :style="'background-color:' + getColor(pid)"></div>
                         </template>
-                        <template x-if="day.isPredictedPeriod">
-                            <div class="w-1.5 h-1.5 rounded-full bg-red-300"></div>
+                        <template x-for="pid in day.personPredicted" :key="'pp-'+pid">
+                            <div class="w-1.5 h-1.5 rounded-full opacity-50" :style="'background-color:' + getColor(pid)"></div>
                         </template>
-                        <template x-if="day.isOvulationDay">
+                        <template x-for="pid in day.personOvulation" :key="'o-'+pid">
                             <div class="w-1.5 h-1.5 rounded-full bg-green-500"></div>
-                        </template>
-                        <template x-if="day.isOvulationWindow && !day.isOvulationDay">
-                            <div class="w-1.5 h-1.5 rounded-full bg-purple-400"></div>
                         </template>
                     </div>
                 </div>
@@ -69,98 +61,137 @@
 
         <!-- Legend -->
         <div class="flex flex-wrap gap-4 mt-4 text-xs text-gray-600">
-            <div class="flex items-center gap-1"><div class="w-3 h-3 rounded-full bg-red-500"></div> 月经期</div>
-            <div class="flex items-center gap-1"><div class="w-3 h-3 rounded-full bg-red-300"></div> 预测月经期</div>
-            <div class="flex items-center gap-1"><div class="w-3 h-3 rounded-full bg-purple-400"></div> 排卵窗口</div>
+            <template x-for="(color, pid) in personColors" :key="pid">
+                <div class="flex items-center gap-1">
+                    <div class="w-3 h-3 rounded-full" :style="'background-color:' + color"></div>
+                    <span x-text="getPersonName(pid)"></span>
+                </div>
+            </template>
             <div class="flex items-center gap-1"><div class="w-3 h-3 rounded-full bg-green-500"></div> 排卵日</div>
         </div>
     </div>
 
-    <!-- Quick add record -->
+    <!-- Click action: mark start or end -->
     <div class="mt-6 bg-white rounded-xl shadow-sm border border-gray-200 p-6" x-show="selectedDay" x-cloak>
         <h3 class="text-sm font-semibold text-gray-700 mb-3">
-            <span x-text="selectedDay ? selectedDay.fullDate : ''"></span> - 添加记录
+            <span x-text="selectedDay ? selectedDay.fullDate : ''"></span> — 标记记录
         </h3>
-        <form action="/record/create" method="POST" class="space-y-3">
-            <input type="hidden" name="person_id" :value="personId">
-            <input type="hidden" name="start_date" :value="selectedDay ? selectedDay.fullDate : ''">
-            <div>
-                <label class="block text-sm text-gray-600 mb-1">结束日期（可选）</label>
-                <input type="date" name="end_date" class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm w-full focus:ring-2 focus:ring-pink-500">
-            </div>
-            <div>
-                <label class="block text-sm text-gray-600 mb-1">备注</label>
-                <input type="text" name="note" class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm w-full focus:ring-2 focus:ring-pink-500" placeholder="可选">
-            </div>
-            <button type="submit" class="bg-pink-600 text-white px-4 py-1.5 rounded-lg text-sm hover:bg-pink-700 transition">添加记录</button>
-        </form>
-    </div>
 
-    <!-- Existing records -->
-    <div class="mt-6 bg-white rounded-xl shadow-sm border border-gray-200 p-6" x-show="records.length > 0">
-        <h3 class="text-sm font-semibold text-gray-700 mb-3">月经记录</h3>
-        <div class="space-y-2">
-            <template x-for="rec in records" :key="rec.id">
+        <!-- Existing records for this day -->
+        <div x-show="dayRecords.length > 0" class="mb-4 space-y-2">
+            <template x-for="rec in dayRecords" :key="rec.id">
                 <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                     <div>
-                        <span class="text-sm font-medium" x-text="rec.start_date"></span>
+                        <span class="w-2 h-2 rounded-full inline-block mr-1" :style="'background-color:' + getColor(rec.person_id)"></span>
+                        <span class="text-sm font-medium" x-text="getPersonName(rec.person_id)"></span>
+                        <span class="text-sm text-gray-500" x-text="rec.start_date"></span>
                         <span x-show="rec.end_date" class="text-sm text-gray-500"> ~ </span>
                         <span x-show="rec.end_date" class="text-sm text-gray-500" x-text="rec.end_date"></span>
                         <span x-show="rec.note" class="text-sm text-gray-400 ml-2" x-text="'(' + rec.note + ')'"></span>
                     </div>
-                    <form action="/record/delete" method="POST" class="inline" onsubmit="return confirm('确定删除此记录？')">
+                    <form action="/record/delete" method="POST" class="inline" onsubmit="return confirm('确定删除？')">
                         <input type="hidden" name="id" :value="rec.id">
-                        <input type="hidden" name="person_id" :value="personId">
                         <button type="submit" class="text-red-500 hover:text-red-700 text-xs">删除</button>
                     </form>
                 </div>
             </template>
         </div>
-    </div>
 
-    <!-- Cycle info -->
-    <div class="mt-6 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <h3 class="text-sm font-semibold text-gray-700 mb-3">周期信息</h3>
-        <div class="grid grid-cols-2 gap-4 text-sm">
-            <div class="p-3 bg-pink-50 rounded-lg">
-                <div class="text-pink-600 font-medium">下次月经预测</div>
-                <div class="text-gray-700" x-text="nextPeriod"></div>
-            </div>
-            <div class="p-3 bg-purple-50 rounded-lg">
-                <div class="text-purple-600 font-medium">排卵日预测</div>
-                <div class="text-gray-700" x-text="ovulationDay"></div>
-            </div>
+        <!-- Mark as start date -->
+        <div class="border-t pt-4">
+            <h4 class="text-xs font-medium text-gray-500 mb-2">标记为月经开始</h4>
+            <form action="/record/create" method="POST" class="flex items-end gap-2 mb-3">
+                <input type="hidden" name="start_date" :value="selectedDay ? selectedDay.fullDate : ''">
+                <div>
+                    <label class="block text-xs text-gray-500 mb-1">人员</label>
+                    <select name="person_id" class="border border-gray-300 rounded-lg px-2 py-1 text-sm">
+                        {{range .Persons}}
+                        <option value="{{.ID}}">{{$p := .}}{{.Name}}</option>
+                        {{end}}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-500 mb-1">结束日期</label>
+                    <input type="date" name="end_date" class="border border-gray-300 rounded-lg px-2 py-1 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-500 mb-1">备注</label>
+                    <input type="text" name="note" class="border border-gray-300 rounded-lg px-2 py-1 text-sm w-28" placeholder="可选">
+                </div>
+                <button type="submit" class="bg-pink-600 text-white px-3 py-1 rounded-lg text-sm hover:bg-pink-700 transition whitespace-nowrap">标记开始</button>
+            </form>
+        </div>
+
+        <!-- Mark as end date for existing records without end -->
+        <div x-show="openRecords.length > 0" class="border-t pt-4 mt-3">
+            <h4 class="text-xs font-medium text-gray-500 mb-2">标记为月经结束</h4>
+            <template x-for="rec in openRecords" :key="'end-'+rec.id">
+                <form action="/record/edit" method="POST" class="flex items-center gap-2 mb-2">
+                    <input type="hidden" name="id" :value="rec.id">
+                    <input type="hidden" name="start_date" :value="rec.start_date">
+                    <input type="hidden" name="person_id" :value="rec.person_id">
+                    <span class="w-2 h-2 rounded-full" :style="'background-color:' + getColor(rec.person_id)"></span>
+                    <span class="text-sm" x-text="getPersonName(rec.person_id) + ' 开始于 ' + rec.start_date"></span>
+                    <input type="hidden" name="end_date" :value="selectedDay ? selectedDay.fullDate : ''">
+                    <button type="submit" class="bg-purple-600 text-white px-3 py-1 rounded-lg text-sm hover:bg-purple-700 transition whitespace-nowrap">设为结束</button>
+                </form>
+            </template>
         </div>
     </div>
 </div>
 
 <script>
+const PERSON_COLORS = ['#ef4444','#3b82f6','#10b981','#f59e0b','#8b5cf6','#ec4899','#14b8a6','#f97316'];
+
 function calendar() {
     return {
         year: {{.Year}},
         month: {{.Month}},
-        personId: {{.CurrentPerson}},
+        persons: {{.Persons}},
+        personColors: {},
+        activePersons: [],
         periods: [],
         ovulations: [],
         records: [],
         selectedDay: null,
-        nextPeriod: '暂无数据',
-        ovulationDay: '暂无数据',
         calendarDays: [],
 
         init() {
+            const activeIds = this.persons.map(p => p.id);
+            this.activePersons = [...activeIds];
+            this.persons.forEach((p, i) => {
+                this.personColors[p.id] = PERSON_COLORS[i % PERSON_COLORS.length];
+            });
+            this.loadData();
+        },
+
+        getColor(pid) {
+            return this.personColors[pid] || '#9ca3af';
+        },
+
+        getPersonName(pid) {
+            const p = this.persons.find(x => x.id === pid);
+            return p ? p.name : '';
+        },
+
+        togglePerson(pid) {
+            const idx = this.activePersons.indexOf(pid);
+            if (idx >= 0) {
+                this.activePersons.splice(idx, 1);
+            } else {
+                this.activePersons.push(pid);
+            }
             this.loadData();
         },
 
         async loadData() {
             try {
-                const resp = await fetch(`/api/records?person_id=${this.personId}&year=${this.year}&month=${this.month}`);
+                const resp = await fetch('/api/records?year=' + this.year + '&month=' + this.month);
                 const data = await resp.json();
-                this.periods = data.periods || [];
-                this.ovulations = data.ovulations || [];
+                this.periods = (data.periods || []).filter(p => this.activePersons.includes(p.person_id));
+                this.ovulations = (data.ovulations || []).filter(o => this.activePersons.includes(o.person_id));
                 this.records = (data.records || []).sort((a, b) => b.start_date.localeCompare(a.start_date));
                 this.buildCalendar();
-                this.calculatePredictions();
             } catch(e) {
                 console.error('Load failed:', e);
             }
@@ -171,64 +202,53 @@ function calendar() {
             const lastDay = new Date(this.year, this.month, 0);
             const startDayOfWeek = firstDay.getDay();
             const daysInMonth = lastDay.getDate();
-
             const today = new Date();
             const todayStr = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0');
-
             const days = [];
 
-            // Previous month days
             const prevMonthLast = new Date(this.year, this.month - 1, 0).getDate();
             for (let i = startDayOfWeek - 1; i >= 0; i--) {
                 const d = prevMonthLast - i;
                 const m = this.month === 1 ? 12 : this.month - 1;
                 const y = this.month === 1 ? this.year - 1 : this.year;
-                const dateStr = y + '-' + String(m).padStart(2,'0') + '-' + String(d).padStart(2,'0');
-                days.push(this.makeDay(d, dateStr, false, todayStr));
+                days.push(this.makeDay(d, y + '-' + String(m).padStart(2,'0') + '-' + String(d).padStart(2,'0'), false, todayStr));
             }
-
-            // Current month days
             for (let d = 1; d <= daysInMonth; d++) {
-                const dateStr = this.year + '-' + String(this.month).padStart(2,'0') + '-' + String(d).padStart(2,'0');
-                days.push(this.makeDay(d, dateStr, true, todayStr));
+                days.push(this.makeDay(d, this.year + '-' + String(this.month).padStart(2,'0') + '-' + String(d).padStart(2,'0'), true, todayStr));
             }
-
-            // Next month days
             const remaining = 42 - days.length;
             for (let d = 1; d <= remaining; d++) {
                 const m = this.month === 12 ? 1 : this.month + 1;
                 const y = this.month === 12 ? this.year + 1 : this.year;
-                const dateStr = y + '-' + String(m).padStart(2,'0') + '-' + String(d).padStart(2,'0');
-                days.push(this.makeDay(d, dateStr, false, todayStr));
+                days.push(this.makeDay(d, y + '-' + String(m).padStart(2,'0') + '-' + String(d).padStart(2,'0'), false, todayStr));
             }
-
             this.calendarDays = days;
         },
 
         makeDay(date, fullDate, inMonth, todayStr) {
-            const isPeriod = this.periods.some(p => p.type === 'period' && fullDate >= p.start && fullDate <= p.end);
-            const isPredictedPeriod = !isPeriod && this.periods.some(p => p.type === 'predicted_period' && fullDate >= p.start && fullDate <= p.end);
-            const isOvulationWindow = this.ovulations.some(o => o.type === 'ovulation_window' && fullDate >= o.start && fullDate <= o.end);
-            const isOvulationDay = this.ovulations.some(o => o.type === 'ovulation_day' && fullDate >= o.start && fullDate <= o.end);
+            const personPeriods = [];
+            const personPredicted = [];
+            const personOvulation = [];
 
-            return {
-                key: fullDate,
-                date: date,
-                fullDate: fullDate,
-                inMonth: inMonth,
-                isToday: fullDate === todayStr,
-                isPeriod,
-                isPredictedPeriod,
-                isOvulationWindow,
-                isOvulationDay,
-            };
+            this.periods.forEach(p => {
+                if (fullDate >= p.start && fullDate <= p.end) {
+                    if (p.type === 'period' && !personPeriods.includes(p.person_id)) personPeriods.push(p.person_id);
+                    if (p.type === 'predicted_period' && !personPredicted.includes(p.person_id)) personPredicted.push(p.person_id);
+                }
+            });
+            this.ovulations.forEach(o => {
+                if (fullDate >= o.start && fullDate <= o.end) {
+                    if (o.type === 'ovulation_day' && !personOvulation.includes(o.person_id)) personOvulation.push(o.person_id);
+                }
+            });
+
+            return { key: fullDate, date, fullDate, inMonth, isToday: fullDate === todayStr, personPeriods, personPredicted, personOvulation };
         },
 
         dayClasses(day) {
-            if (day.isPeriod) return 'bg-red-100 border-red-300';
-            if (day.isPredictedPeriod) return 'bg-red-50 border-red-200 border-dashed';
-            if (day.isOvulationDay) return 'bg-green-100 border-green-300';
-            if (day.isOvulationWindow) return 'bg-purple-50 border-purple-200 border-dashed';
+            if (day.personPeriods.length > 0) return 'border-gray-300';
+            if (day.personPredicted.length > 0) return 'border-gray-200 border-dashed';
+            if (day.personOvulation.length > 0) return 'bg-green-50 border-green-200';
             if (day.isToday) return 'border-pink-500 border-2';
             return 'border-gray-100 hover:bg-gray-50';
         },
@@ -239,50 +259,31 @@ function calendar() {
             }
         },
 
+        get dayRecords() {
+            if (!this.selectedDay) return [];
+            return this.records.filter(r => {
+                if (r.start_date === this.selectedDay.fullDate) return true;
+                if (r.end_date && r.end_date === this.selectedDay.fullDate) return true;
+                if (!r.end_date && r.start_date < this.selectedDay.fullDate) return true;
+                return false;
+            });
+        },
+
+        get openRecords() {
+            if (!this.selectedDay) return [];
+            return this.records.filter(r => !r.end_date && r.start_date < this.selectedDay.fullDate);
+        },
+
         prevMonth() {
-            if (this.month === 1) {
-                this.month = 12;
-                this.year--;
-            } else {
-                this.month--;
-            }
+            if (this.month === 1) { this.month = 12; this.year--; }
+            else { this.month--; }
             this.loadData();
         },
 
         nextMonth() {
-            if (this.month === 12) {
-                this.month = 1;
-                this.year++;
-            } else {
-                this.month++;
-            }
+            if (this.month === 12) { this.month = 1; this.year++; }
+            else { this.month++; }
             this.loadData();
-        },
-
-        calculatePredictions() {
-            if (this.records.length === 0) {
-                this.nextPeriod = '暂无数据';
-                this.ovulationDay = '暂无数据';
-                return;
-            }
-
-            const sorted = [...this.records].sort((a, b) => b.start_date.localeCompare(a.start_date));
-            const latest = sorted[0];
-
-            const latestDate = new Date(latest.start_date);
-            const nextPeriodDate = new Date(latestDate);
-            nextPeriodDate.setDate(nextPeriodDate.getDate() + parseInt('{{if .Person}}{{.Person.CycleLength}}{{else}}28{{end}}'));
-
-            const ovDate = new Date(nextPeriodDate);
-            ovDate.setDate(ovDate.getDate() - 14);
-
-            this.nextPeriod = nextPeriodDate.getFullYear() + '-' +
-                String(nextPeriodDate.getMonth()+1).padStart(2,'0') + '-' +
-                String(nextPeriodDate.getDate()).padStart(2,'0');
-
-            this.ovulationDay = ovDate.getFullYear() + '-' +
-                String(ovDate.getMonth()+1).padStart(2,'0') + '-' +
-                String(ovDate.getDate()).padStart(2,'0');
         }
     }
 }

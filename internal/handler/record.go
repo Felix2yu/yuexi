@@ -9,14 +9,10 @@ import (
 	"yuexi/internal/service"
 )
 
+
+
 func RecordAPI(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-
-	personID, err := strconv.ParseInt(r.URL.Query().Get("person_id"), 10, 64)
-	if err != nil {
-		http.Error(w, `{"error": "invalid person_id"}`, 400)
-		return
-	}
 
 	year, _ := strconv.Atoi(r.URL.Query().Get("year"))
 	month, _ := strconv.Atoi(r.URL.Query().Get("month"))
@@ -26,19 +22,28 @@ func RecordAPI(w http.ResponseWriter, r *http.Request) {
 		month = int(now.Month())
 	}
 
-	person, err := db.GetPerson(personID)
-	if err != nil {
-		http.Error(w, `{"error": "person not found"}`, 404)
-		return
+	persons, _ := db.GetAllPersons()
+	allRecords, _ := db.GetAllRecords()
+
+	var allPeriods, allOvulations []db.DateRange
+
+	for _, p := range persons {
+		var recs []db.Record
+		for _, r := range allRecords {
+			if r.PersonID == p.ID {
+				recs = append(recs, r)
+			}
+		}
+		periods, ovulations := service.CalculateMonthData(p, recs, year, month)
+		allPeriods = append(allPeriods, periods...)
+		allOvulations = append(allOvulations, ovulations...)
 	}
 
-	records, _ := db.GetRecordsByPerson(personID)
-	periods, ovulations := service.CalculateMonthData(*person, records, year, month)
-
 	result := map[string]interface{}{
-		"periods":    periods,
-		"ovulations": ovulations,
-		"records":    records,
+		"periods":    allPeriods,
+		"ovulations": allOvulations,
+		"records":    allRecords,
+		"persons":    persons,
 	}
 
 	json.NewEncoder(w).Encode(result)
