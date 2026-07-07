@@ -144,7 +144,7 @@ func DailyLogAPI(w http.ResponseWriter, r *http.Request) {
 	case http.MethodPost:
 		var req struct {
 			Date      string `json:"date"`
-			FlowLevel int    `json:"flow_level"`
+			FlowLevel *int   `json:"flow_level"`
 			Symptoms  string `json:"symptoms"`
 			Note      string `json:"note"`
 		}

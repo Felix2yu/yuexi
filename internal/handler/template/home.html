@@ -6,9 +6,12 @@
     .cal-bar-mid { left: -2px; right: -2px; border-radius: 0; }
     .cal-bar-end { left: -2px; border-radius: 0 6px 6px 0; }
     .cal-bar-single { border-radius: 6px; }
+    .popup-overlay { position: fixed; inset: 0; z-index: 40; }
+    .day-popup { position: fixed; z-index: 50; width: 320px; max-height: 80vh; overflow-y: auto;
+                 box-shadow: 0 10px 40px rgba(0,0,0,0.15); border-radius: 12px; }
 </style>
 
-<div x-data="calendar()" x-init="init()">
+<div x-data="calendar()" x-init="init()" @click.self="closePopup()">
     <!-- Person legend (family mode only) -->
     <div x-show="familyMode" class="mb-6 flex flex-wrap items-center gap-3">
         <span class="text-sm text-gray-600 dark:text-gray-400 font-medium">人员：</span>
@@ -45,17 +48,15 @@
             <template x-for="day in calendarDays" :key="day.key">
                 <div class="relative cal-cell bg-white dark:bg-gray-800 p-1 cursor-pointer overflow-hidden"
                      :class="{'ring-2 ring-pink-500': day.isToday, 'bg-gray-50 dark:bg-gray-750': !day.inMonth}"
-                     @click="selectDay(day)">
+                     :data-date="day.fullDate"
+                     @click="selectDay(day, $event)">
                     <div class="text-sm font-medium leading-none"
                          :class="{'text-pink-600 dark:text-pink-400 font-bold': day.isToday, 'text-gray-900 dark:text-gray-100': !day.isToday && day.inMonth, 'text-gray-300 dark:text-gray-600': !day.inMonth}"
                          x-text="day.date"></div>
-
                     <template x-for="bar in day.bars" :key="bar.pid + '-' + bar.kind">
                         <div class="cal-bar" :class="'cal-bar-' + bar.pos"
-                             :style="'background-color:' + getColor(bar.pid) + (bar.kind === 'predicted' ? ';opacity:0.4' : '')">
-                        </div>
+                             :style="'background-color:' + getColor(bar.pid) + (bar.kind === 'predicted' ? ';opacity:0.4' : '')"></div>
                     </template>
-
                     <template x-for="pid in day.ovulationPids" :key="'ov-'+pid">
                         <div class="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-green-500"></div>
                     </template>
@@ -71,122 +72,103 @@
                     <span x-text="getPersonName(pid)"></span>
                 </div>
             </template>
-            <div class="flex items-center gap-1">
-                <div class="w-4 h-1.5 rounded-sm bg-gray-400 opacity-40"></div>
-                <span>预测</span>
-            </div>
-            <div class="flex items-center gap-1">
-                <div class="w-1.5 h-1.5 rounded-full bg-green-500"></div>
-                <span>排卵日</span>
-            </div>
+            <div class="flex items-center gap-1"><div class="w-4 h-1.5 rounded-sm bg-gray-400 opacity-40"></div><span>预测</span></div>
+            <div class="flex items-center gap-1"><div class="w-1.5 h-1.5 rounded-full bg-green-500"></div><span>排卵日</span></div>
         </div>
     </div>
 
-    <!-- Click action panel -->
-    <div class="mt-6 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6" x-show="selectedDay" x-cloak>
-        <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-            <span x-text="selectedDay ? selectedDay.fullDate : ''"></span> — 标记记录
-        </h3>
+    <!-- Floating popup -->
+    <div x-show="showPopup" x-cloak class="popup-overlay" @click="closePopup()"></div>
+    <div x-show="showPopup" x-cloak class="day-popup bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-4"
+         :style="popupStyle" @click.stop>
+        <div class="flex items-center justify-between mb-3">
+            <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300" x-text="selectedDay ? selectedDay.fullDate : ''"></h3>
+            <button @click="closePopup()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
 
-        <div x-show="dayRecords.length > 0" class="mb-4 space-y-2">
+        <!-- Existing records -->
+        <div x-show="dayRecords.length > 0" class="mb-3 space-y-1.5">
             <template x-for="rec in dayRecords" :key="rec.id">
-                <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                    <div>
+                <div class="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700 rounded-lg text-sm">
+                    <div class="truncate">
                         <span class="w-2 h-2 rounded-full inline-block mr-1" :style="'background-color:' + getColor(rec.person_id)"></span>
-                        <span class="text-sm font-medium text-gray-800 dark:text-gray-200" x-text="familyMode ? getPersonName(rec.person_id) + ' ' : ''"></span>
-                        <span class="text-sm text-gray-500 dark:text-gray-400" x-text="rec.start_date"></span>
-                        <span x-show="rec.end_date" class="text-sm text-gray-500 dark:text-gray-400"> ~ </span>
-                        <span x-show="rec.end_date" class="text-sm text-gray-500 dark:text-gray-400" x-text="rec.end_date"></span>
-                        <span x-show="rec.note" class="text-sm text-gray-400 dark:text-gray-500 ml-2" x-text="'(' + rec.note + ')'"></span>
+                        <span class="text-gray-800 dark:text-gray-200" x-text="rec.start_date"></span>
+                        <span x-show="rec.end_date" class="text-gray-500 dark:text-gray-400"> ~ </span>
+                        <span x-show="rec.end_date" class="text-gray-500 dark:text-gray-400" x-text="rec.end_date"></span>
                     </div>
-                    <form action="/record/delete" method="POST" class="inline" onsubmit="return confirm('确定删除？')">
+                    <form action="/record/delete" method="POST" class="inline" onsubmit="return confirm('删除？')">
                         <input type="hidden" name="id" :value="rec.id">
-                        <button type="submit" class="text-red-500 hover:text-red-700 text-xs">删除</button>
+                        <button type="submit" class="text-red-500 hover:text-red-700 text-xs ml-2 shrink-0">删除</button>
                     </form>
                 </div>
             </template>
         </div>
 
-        <div class="border-t border-gray-200 dark:border-gray-600 pt-4">
-            <h4 class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">标记为月经开始</h4>
-            <form action="/record/create" method="POST" class="flex items-end gap-2 mb-3">
+        <!-- Mark period start -->
+        <div class="border-t border-gray-200 dark:border-gray-600 pt-3 mb-3">
+            <form action="/record/create" method="POST" class="flex items-end gap-1.5">
                 <input type="hidden" name="start_date" :value="selectedDay ? selectedDay.fullDate : ''">
                 <div x-show="familyMode">
-                    <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">人员</label>
-                    <select name="person_id" class="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg px-2 py-1 text-sm">
-                        {{range .Persons}}
-                        <option value="{{.ID}}">{{.Name}}</option>
-                        {{end}}
+                    <select name="person_id" class="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg px-2 py-1 text-xs">
+                        {{range .Persons}}<option value="{{.ID}}">{{.Name}}</option>{{end}}
                     </select>
                 </div>
                 <input x-show="!familyMode" type="hidden" name="person_id" value="{{(index .Persons 0).ID}}">
-                <div>
-                    <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">结束日期</label>
-                    <input type="date" name="end_date" class="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg px-2 py-1 text-sm">
-                </div>
-                <div>
-                    <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">备注</label>
-                    <input type="text" name="note" class="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg px-2 py-1 text-sm w-28" placeholder="可选">
-                </div>
-                <button type="submit" class="bg-pink-600 text-white px-3 py-1 rounded-lg text-sm hover:bg-pink-700 transition whitespace-nowrap">标记开始</button>
+                <input type="date" name="end_date" class="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg px-2 py-1 text-xs flex-1" placeholder="结束">
+                <input type="text" name="note" class="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg px-2 py-1 text-xs w-16" placeholder="备注">
+                <button type="submit" class="bg-pink-600 text-white px-2 py-1 rounded-lg text-xs hover:bg-pink-700 shrink-0">开始</button>
             </form>
         </div>
 
-        <div x-show="openRecords.length > 0" class="border-t border-gray-200 dark:border-gray-600 pt-4 mt-3">
-            <h4 class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">标记为月经结束</h4>
+        <!-- Mark period end -->
+        <div x-show="openRecords.length > 0" class="border-t border-gray-200 dark:border-gray-600 pt-3 mb-3">
             <template x-for="rec in openRecords" :key="'end-'+rec.id">
-                <form action="/record/edit" method="POST" class="flex items-center gap-2 mb-2">
+                <form action="/record/edit" method="POST" class="flex items-center gap-1.5 mb-1.5">
                     <input type="hidden" name="id" :value="rec.id">
                     <input type="hidden" name="start_date" :value="rec.start_date">
                     <input type="hidden" name="person_id" :value="rec.person_id">
-                    <span class="w-2 h-2 rounded-full" :style="'background-color:' + getColor(rec.person_id)"></span>
-                    <span class="text-sm text-gray-700 dark:text-gray-300" x-text="getPersonName(rec.person_id) + ' 开始于 ' + rec.start_date"></span>
+                    <span class="w-2 h-2 rounded-full shrink-0" :style="'background-color:' + getColor(rec.person_id)"></span>
+                    <span class="text-xs text-gray-600 dark:text-gray-400 truncate flex-1" x-text="getPersonName(rec.person_id) + ' ' + rec.start_date"></span>
                     <input type="hidden" name="end_date" :value="selectedDay ? selectedDay.fullDate : ''">
-                    <button type="submit" class="bg-purple-600 text-white px-3 py-1 rounded-lg text-sm hover:bg-purple-700 transition whitespace-nowrap">设为结束</button>
+                    <button type="submit" class="bg-purple-600 text-white px-2 py-0.5 rounded text-xs hover:bg-purple-700 shrink-0">结束</button>
                 </form>
             </template>
         </div>
 
-        <!-- Daily log: flow & symptoms -->
-        <div class="border-t border-gray-200 dark:border-gray-600 pt-4 mt-3">
-            <h4 class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">经量与症状</h4>
-            <div class="space-y-3">
-                <div>
-                    <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">经量</label>
-                    <div class="flex gap-2">
-                        <template x-for="(label, level) in flowLevels" :key="level">
-                            <button type="button" @click="setFlowLevel(level)"
-                                class="px-3 py-1 rounded-lg text-xs border transition-all"
-                                :class="dailyLog.flow_level == level
-                                    ? 'border-pink-500 bg-pink-50 dark:bg-pink-900/30 text-pink-700 dark:text-pink-300'
-                                    : 'border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-gray-300'"
-                                x-text="label">
-                            </button>
-                        </template>
-                    </div>
+        <!-- Daily log -->
+        <div class="border-t border-gray-200 dark:border-gray-600 pt-3">
+            <div class="mb-2">
+                <label class="text-xs text-gray-500 dark:text-gray-400 mr-2">经量</label>
+                <div class="inline-flex gap-1.5">
+                    <template x-for="(label, level) in flowLevels" :key="level">
+                        <button type="button" @click="setFlowLevel(level)"
+                            class="px-2 py-0.5 rounded text-xs border transition-all"
+                            :class="dailyLog.flow_level == level
+                                ? 'border-pink-500 bg-pink-50 dark:bg-pink-900/30 text-pink-700 dark:text-pink-300'
+                                : 'border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:border-gray-300'"
+                            x-text="label"></button>
+                    </template>
                 </div>
-                <div>
-                    <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">症状（点击选择）</label>
-                    <div class="flex flex-wrap gap-1.5">
-                        <template x-for="s in symptomOptions" :key="s">
-                            <button type="button" @click="toggleSymptom(s)"
-                                class="px-2 py-0.5 rounded-full text-xs border transition-all"
-                                :class="dailyLog.symptoms.includes(s)
-                                    ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300'
-                                    : 'border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:border-gray-300'"
-                                x-text="s">
-                            </button>
-                        </template>
-                    </div>
+            </div>
+            <div class="mb-2">
+                <label class="text-xs text-gray-500 dark:text-gray-400 block mb-1">症状</label>
+                <div class="flex flex-wrap gap-1">
+                    <template x-for="s in symptomOptions" :key="s">
+                        <button type="button" @click="toggleSymptom(s)"
+                            class="px-1.5 py-0.5 rounded-full text-xs border transition-all"
+                            :class="dailyLog.symptoms.includes(s)
+                                ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300'
+                                : 'border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:border-gray-300'"
+                            x-text="s"></button>
+                    </template>
                 </div>
-                <div class="flex items-center gap-2">
-                    <button type="button" @click="saveDailyLog()"
-                        class="bg-pink-600 text-white px-3 py-1 rounded-lg text-sm hover:bg-pink-700 transition"
-                        :disabled="dailyLogSaving"
-                        x-text="dailyLogSaving ? '保存中...' : '保存'">
-                    </button>
-                    <span x-show="dailyLogSaved" class="text-xs text-green-600 dark:text-green-400">已保存</span>
-                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <button @click="saveDailyLog()" class="bg-pink-600 text-white px-3 py-1 rounded-lg text-xs hover:bg-pink-700 transition"
+                    :disabled="dailyLogSaving" x-text="dailyLogSaving ? '...' : '保存'"></button>
+                <span x-show="dailyLogSaved" class="text-xs text-green-600 dark:text-green-400">已保存</span>
             </div>
         </div>
     </div>
@@ -208,11 +190,13 @@ function calendar() {
         ovulations: [],
         records: [],
         selectedDay: null,
+        showPopup: false,
+        popupStyle: '',
         calendarDays: [],
-        dailyLog: { flow_level: 0, symptoms: '', note: '' },
+        dailyLog: { flow_level: null, symptoms: '', note: '' },
         dailyLogSaving: false,
         dailyLogSaved: false,
-        flowLevels: { 0: '无', 1: '少', 2: '中', 3: '多' },
+        flowLevels: { 1: '少', 2: '中', 3: '多' },
         symptomOptions: ['痛经', '头痛', '腰酸', '腹胀', '疲劳', '情绪波动', '乳房胀痛', '恶心', '失眠', '食欲变化'],
 
         init() {
@@ -222,11 +206,7 @@ function calendar() {
             this.persons.forEach((p, i) => {
                 this.personColors[p.id] = (settings.personColors && settings.personColors[p.id]) || PERSON_COLORS[i % PERSON_COLORS.length];
             });
-            if (this.familyMode) {
-                this.activePersons = this.persons.map(p => p.id);
-            } else {
-                this.activePersons = this.persons.length > 0 ? [this.persons[0].id] : [];
-            }
+            this.activePersons = this.familyMode ? this.persons.map(p => p.id) : (this.persons.length > 0 ? [this.persons[0].id] : []);
             this.loadData();
         },
 
@@ -258,7 +238,6 @@ function calendar() {
             const today = new Date();
             const todayStr = fmt(today);
             const days = [];
-
             const prevLast = new Date(this.year, this.month - 1, 0).getDate();
             for (let i = startDow - 1; i >= 0; i--) {
                 const d = prevLast - i;
@@ -277,60 +256,59 @@ function calendar() {
         },
 
         makeDay(date, fullDate, inMonth, todayStr) {
-            const bars = [];
-            const ovulationPids = [];
-
+            const bars = [], ovulationPids = [];
             this.periods.forEach(p => {
                 if (fullDate >= p.start && fullDate <= p.end) {
-                    const pos = barPosition(fullDate, p.start, p.end);
-                    bars.push({ pid: p.person_id, kind: p.type === 'period' ? 'actual' : 'predicted', pos });
+                    bars.push({ pid: p.person_id, kind: p.type === 'period' ? 'actual' : 'predicted', pos: barPosition(fullDate, p.start, p.end) });
                 }
             });
             if (this.showOvulation) {
                 this.ovulations.forEach(o => {
-                    if (fullDate === o.start && o.type === 'ovulation_day') {
-                        ovulationPids.push(o.person_id);
-                    }
+                    if (fullDate === o.start && o.type === 'ovulation_day') ovulationPids.push(o.person_id);
                 });
             }
-
             return { key: fullDate, date, fullDate, inMonth, isToday: fullDate === todayStr, bars, ovulationPids };
         },
 
-        selectDay(day) {
-            if (day.inMonth) {
-                this.selectedDay = day;
-                this.loadDailyLog();
-            }
+        selectDay(day, event) {
+            if (!day.inMonth) return;
+            this.selectedDay = day;
+            this.loadDailyLog();
+
+            // Position popup near clicked cell
+            const rect = event.target.closest('.cal-cell').getBoundingClientRect();
+            let top = rect.bottom + 8;
+            let left = rect.left;
+            // Keep within viewport
+            if (left + 320 > window.innerWidth) left = window.innerWidth - 330;
+            if (left < 10) left = 10;
+            if (top + 400 > window.innerHeight) top = rect.top - 408;
+            if (top < 10) top = 10;
+            this.popupStyle = 'top:' + top + 'px;left:' + left + 'px';
+            this.showPopup = true;
         },
+
+        closePopup() { this.showPopup = false; },
 
         async loadDailyLog() {
             if (!this.selectedDay || this.persons.length === 0) return;
-            const pid = this.persons[0].id;
             try {
-                const resp = await fetch('/api/daily/?person_id=' + pid);
+                const resp = await fetch('/api/daily/?person_id=' + this.persons[0].id);
                 const logs = await resp.json();
                 const log = logs.find(l => l.date === this.selectedDay.fullDate);
-                if (log) {
-                    this.dailyLog = { flow_level: log.flow_level, symptoms: log.symptoms || '', note: log.note || '' };
-                } else {
-                    this.dailyLog = { flow_level: 0, symptoms: '', note: '' };
-                }
-            } catch(e) {
-                this.dailyLog = { flow_level: 0, symptoms: '', note: '' };
-            }
+                this.dailyLog = log ? { flow_level: log.flow_level, symptoms: log.symptoms || '', note: log.note || '' } : { flow_level: null, symptoms: '', note: '' };
+            } catch(e) { this.dailyLog = { flow_level: null, symptoms: '', note: '' }; }
             this.dailyLogSaved = false;
         },
 
         setFlowLevel(level) {
-            this.dailyLog.flow_level = this.dailyLog.flow_level == level ? 0 : level;
+            this.dailyLog.flow_level = this.dailyLog.flow_level === level ? null : level;
         },
 
         toggleSymptom(s) {
             const parts = this.dailyLog.symptoms ? this.dailyLog.symptoms.split(',').filter(x => x) : [];
             const idx = parts.indexOf(s);
-            if (idx >= 0) parts.splice(idx, 1);
-            else parts.push(s);
+            if (idx >= 0) parts.splice(idx, 1); else parts.push(s);
             this.dailyLog.symptoms = parts.join(',');
         },
 
@@ -341,12 +319,7 @@ function calendar() {
                 await fetch('/api/daily/?person_id=' + this.persons[0].id, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        date: this.selectedDay.fullDate,
-                        flow_level: this.dailyLog.flow_level,
-                        symptoms: this.dailyLog.symptoms,
-                        note: this.dailyLog.note
-                    })
+                    body: JSON.stringify({ date: this.selectedDay.fullDate, flow_level: this.dailyLog.flow_level, symptoms: this.dailyLog.symptoms, note: this.dailyLog.note })
                 });
                 this.dailyLogSaved = true;
                 setTimeout(() => this.dailyLogSaved = false, 2000);
@@ -365,14 +338,13 @@ function calendar() {
             return this.records.filter(r => !r.end_date && r.start_date < this.selectedDay.fullDate);
         },
 
-        prevMonth() { if (this.month===1){this.month=12;this.year--}else{this.month--} this.loadData(); },
-        nextMonth() { if (this.month===12){this.month=1;this.year++}else{this.month++} this.loadData(); }
+        prevMonth() { if (this.month===1){this.month=12;this.year--}else{this.month--} this.loadData(); this.closePopup(); },
+        nextMonth() { if (this.month===12){this.month=1;this.year++}else{this.month++} this.loadData(); this.closePopup(); }
     }
 }
 
 function fmt(d) { return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
 function pad(n) { return String(n).padStart(2,'0'); }
-
 function barPosition(date, start, end) {
     if (date === start && date === end) return 'single';
     if (date === start) return 'start';

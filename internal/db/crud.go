@@ -299,8 +299,13 @@ func GetDailyLogsByPerson(personID int64) ([]DailyLog, error) {
 	logs := make([]DailyLog, 0)
 	for rows.Next() {
 		var l DailyLog
-		if err := rows.Scan(&l.ID, &l.PersonID, &l.Date, &l.FlowLevel, &l.Symptoms, &l.Note, &l.CreatedAt); err != nil {
+		var flowLevel sql.NullInt64
+		if err := rows.Scan(&l.ID, &l.PersonID, &l.Date, &flowLevel, &l.Symptoms, &l.Note, &l.CreatedAt); err != nil {
 			return nil, err
+		}
+		if flowLevel.Valid {
+			v := int(flowLevel.Int64)
+			l.FlowLevel = &v
 		}
 		l.Date = normalizeDate(l.Date)
 		l.CreatedAt = normalizeDate(l.CreatedAt)
@@ -311,17 +316,22 @@ func GetDailyLogsByPerson(personID int64) ([]DailyLog, error) {
 
 func GetDailyLog(personID int64, date string) (*DailyLog, error) {
 	var l DailyLog
+	var flowLevel sql.NullInt64
 	err := DB.QueryRow("SELECT id, person_id, date, flow_level, COALESCE(symptoms, ''), COALESCE(note, ''), COALESCE(created_at, '') FROM daily_logs WHERE person_id = ? AND date = ?", personID, date).
-		Scan(&l.ID, &l.PersonID, &l.Date, &l.FlowLevel, &l.Symptoms, &l.Note, &l.CreatedAt)
+		Scan(&l.ID, &l.PersonID, &l.Date, &flowLevel, &l.Symptoms, &l.Note, &l.CreatedAt)
 	if err != nil {
 		return nil, err
+	}
+	if flowLevel.Valid {
+		v := int(flowLevel.Int64)
+		l.FlowLevel = &v
 	}
 	l.Date = normalizeDate(l.Date)
 	l.CreatedAt = normalizeDate(l.CreatedAt)
 	return &l, nil
 }
 
-func UpsertDailyLog(personID int64, date string, flowLevel int, symptoms, note string) error {
+func UpsertDailyLog(personID int64, date string, flowLevel *int, symptoms, note string) error {
 	_, err := DB.Exec(`INSERT INTO daily_logs (person_id, date, flow_level, symptoms, note)
 		VALUES (?, ?, ?, ?, ?)
 		ON CONFLICT(person_id, date) DO UPDATE SET flow_level=?, symptoms=?, note=?`,
@@ -345,8 +355,13 @@ func GetAllDailyLogs() ([]DailyLog, error) {
 	logs := make([]DailyLog, 0)
 	for rows.Next() {
 		var l DailyLog
-		if err := rows.Scan(&l.ID, &l.PersonID, &l.Date, &l.FlowLevel, &l.Symptoms, &l.Note, &l.CreatedAt); err != nil {
+		var flowLevel sql.NullInt64
+		if err := rows.Scan(&l.ID, &l.PersonID, &l.Date, &flowLevel, &l.Symptoms, &l.Note, &l.CreatedAt); err != nil {
 			return nil, err
+		}
+		if flowLevel.Valid {
+			v := int(flowLevel.Int64)
+			l.FlowLevel = &v
 		}
 		l.Date = normalizeDate(l.Date)
 		l.CreatedAt = normalizeDate(l.CreatedAt)
