@@ -35,6 +35,10 @@
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('/sw.js').catch(() => {});
         }
+        function loadSettings() {
+            try { return JSON.parse(localStorage.getItem('yuexi_settings') || '{}'); } catch(e) { return {}; }
+        }
+        function saveSettings(s) { localStorage.setItem('yuexi_settings', JSON.stringify(s)); }
     </script>
 </head>
 <body class="bg-gray-50 dark:bg-gray-900 min-h-screen transition-colors" style="padding-top: env(safe-area-inset-top)">
