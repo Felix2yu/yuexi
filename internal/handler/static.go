@@ -5,6 +5,7 @@ import (
 	"image"
 	"image/color"
 	"image/png"
+	"math"
 	"net/http"
 )
 
@@ -36,72 +37,88 @@ func ServeIcon(w http.ResponseWriter, r *http.Request, size int) {
 
 func generateIcon(size int) image.Image {
 	img := image.NewRGBA(image.Rect(0, 0, size, size))
+	cx, cy := float64(size)/2, float64(size)/2
+	r := float64(size) / 2
 
-	// Fill with pink background
-	bgColor := color.RGBA{236, 72, 153, 255} // pink-500
+	// Deep pink-to-rose gradient background circle
 	for y := 0; y < size; y++ {
 		for x := 0; x < size; x++ {
-			img.Set(x, y, bgColor)
+			dx, dy := float64(x)-cx, float64(y)-cy
+			dist := math.Sqrt(dx*dx + dy*dy)
+			if dist <= r {
+				t := float64(y) / float64(size)
+				cr := uint8(220 + t*36)  // 220 -> 256 (clamped)
+				cg := uint8(40 + t*32)   // 40 -> 72
+				cb := uint8(100 + t*53)  // 100 -> 153
+				if cr > 236 {
+					cr = 236
+				}
+				img.Set(x, y, color.RGBA{cr, cg, cb, 255})
+			}
 		}
 	}
 
-	// Draw a simple rounded rectangle border effect
-	borderColor := color.RGBA{219, 39, 119, 255} // pink-600
-	radius := size / 5
-	thickness := size / 16
-	if thickness < 1 {
-		thickness = 1
+	// Draw 3 flowing wave curves (BitTorrent style)
+	waveThickness := float64(size) * 0.045
+	if waveThickness < 2 {
+		waveThickness = 2
 	}
 
-	// Top and bottom edges
-	for x := radius; x < size-radius; x++ {
-		for t := 0; t < thickness; t++ {
-			img.Set(x, t, borderColor)
-			img.Set(x, size-1-t, borderColor)
-		}
+	// Wave parameters: amplitude, frequency, phase, vertical position
+	waves := []struct {
+		amp, freq, phase, yBase, alpha float64
+	}{
+		{float64(size) * 0.06, 0.035, 0.0, float64(size) * 0.48, 0.55},
+		{float64(size) * 0.07, 0.040, 1.2, float64(size) * 0.56, 0.70},
+		{float64(size) * 0.08, 0.045, 2.4, float64(size) * 0.65, 0.90},
 	}
-	// Left and right edges
-	for y := radius; y < size-radius; y++ {
-		for t := 0; t < thickness; t++ {
-			img.Set(t, y, borderColor)
-			img.Set(size-1-t, y, borderColor)
-		}
-	}
-	// Corner arcs (simplified)
-	for dy := 0; dy < radius; dy++ {
-		for dx := 0; dx < radius; dx++ {
-			if (dx-radius)*(dx-radius)+(dy-radius)*(dy-radius) <= radius*radius {
-				for t := 0; t < thickness; t++ {
-					// Top-left
-					img.Set(dx, dy, borderColor)
-					// Top-right
-					img.Set(size-1-dx, dy, borderColor)
-					// Bottom-left
-					img.Set(dx, size-1-dy, borderColor)
-					// Bottom-right
-					img.Set(size-1-dx, size-1-dy, borderColor)
+
+	for _, w := range waves {
+		for x := 0; x < size; x++ {
+			waveY := w.yBase + w.amp*math.Sin(w.freq*float64(x)+w.phase)
+			for dy := -waveThickness / 2; dy <= waveThickness/2; dy++ {
+				px, py := x, int(waveY+dy)
+				if py >= 0 && py < size {
+					// Check if inside circle
+					ddx, ddy := float64(px)-cx, float64(py)-cy
+					if math.Sqrt(ddx*ddx+ddy*ddy) <= r-1 {
+						a := uint8(255 * w.alpha)
+						img.Set(px, py, color.RGBA{255, 255, 255, a})
+					}
 				}
 			}
 		}
 	}
 
-	// Draw a wave/crescent shape in the center (simplified moon icon)
-	centerX, centerY := size/2, size/2
-	waveColor := color.RGBA{255, 255, 255, 255}
-	waveR := size / 4
+	// Draw crescent moon in upper-right area
+	moonCx := cx + float64(size)*0.12
+	moonCy := cy - float64(size)*0.18
+	moonR := float64(size) * 0.16
+	shiftX := moonR * 0.35
 
-	for y := -waveR; y <= waveR; y++ {
-		for x := -waveR; x <= waveR; x++ {
-			dist := x*x + y*y
-			if dist <= waveR*waveR {
-				// Create crescent by subtracting a shifted circle
-				shiftX := x - waveR/3
-				shiftDist := shiftX*shiftX + y*y
-				if shiftDist > (waveR-2)*(waveR-2) || shiftX < 0 {
-					px, py := centerX+x, centerY+y
-					if px >= 0 && px < size && py >= 0 && py < size {
-						img.Set(px, py, waveColor)
+	for y := 0; y < size; y++ {
+		for x := 0; x < size; x++ {
+			dx, dy := float64(x)-moonCx, float64(y)-moonCy
+			distMain := math.Sqrt(dx*dx + dy*dy)
+			// Shifted circle for subtraction
+			dx2 := float64(x) - (moonCx + shiftX)
+			distShift := math.Sqrt(dx2*dx2 + dy*dy)
+
+			if distMain <= moonR && distShift > moonR*0.82 {
+				// Anti-aliasing at the edge
+				alpha := 1.0
+				if distMain > moonR-1.5 {
+					alpha = (moonR - distMain + 1.5) / 1.5
+				}
+				if distShift < moonR*0.82+1.5 {
+					a2 := (distShift - moonR*0.82 + 1.5) / 1.5
+					if a2 < alpha {
+						alpha = a2
 					}
+				}
+				if alpha > 0 {
+					a := uint8(255 * alpha)
+					img.Set(x, y, color.RGBA{255, 255, 255, a})
 				}
 			}
 		}
