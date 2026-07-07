@@ -9,45 +9,45 @@
 </style>
 
 <div x-data="calendar()" x-init="init()">
-    <!-- Person legend -->
-    <div class="mb-6 flex flex-wrap items-center gap-3">
-        <span class="text-sm text-gray-600 font-medium">人员：</span>
+    <!-- Person legend (family mode only) -->
+    <div x-show="familyMode" class="mb-6 flex flex-wrap items-center gap-3">
+        <span class="text-sm text-gray-600 dark:text-gray-400 font-medium">人员：</span>
         {{range $i, $p := .Persons}}
         <label class="flex items-center gap-1.5 cursor-pointer">
             <input type="checkbox" :checked="personColors[{{$p.ID}}] !== undefined" @change="togglePerson({{$p.ID}})" class="rounded">
             <span class="w-3 h-3 rounded-full" :style="'background-color:' + getColor({{$p.ID}})"></span>
-            <span class="text-sm text-gray-700">{{$p.Name}}</span>
+            <span class="text-sm text-gray-700 dark:text-gray-300">{{$p.Name}}</span>
         </label>
         {{end}}
     </div>
 
     <!-- Calendar -->
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
         <div class="flex items-center justify-between mb-3">
-            <button @click="prevMonth()" class="p-2 hover:bg-gray-100 rounded-lg transition">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+            <button @click="prevMonth()" class="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition">
+                <svg class="w-5 h-5 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
             </button>
-            <h2 class="text-lg font-semibold" x-text="year + '年' + month + '月'"></h2>
-            <button @click="nextMonth()" class="p-2 hover:bg-gray-100 rounded-lg transition">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+            <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-100" x-text="year + '年' + month + '月'"></h2>
+            <button @click="nextMonth()" class="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition">
+                <svg class="w-5 h-5 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
             </button>
         </div>
 
-        <div class="grid grid-cols-7 gap-px bg-gray-200">
-            <div class="bg-gray-50 text-center text-xs font-medium text-gray-500 py-1.5">日</div>
-            <div class="bg-gray-50 text-center text-xs font-medium text-gray-500 py-1.5">一</div>
-            <div class="bg-gray-50 text-center text-xs font-medium text-gray-500 py-1.5">二</div>
-            <div class="bg-gray-50 text-center text-xs font-medium text-gray-500 py-1.5">三</div>
-            <div class="bg-gray-50 text-center text-xs font-medium text-gray-500 py-1.5">四</div>
-            <div class="bg-gray-50 text-center text-xs font-medium text-gray-500 py-1.5">五</div>
-            <div class="bg-gray-50 text-center text-xs font-medium text-gray-500 py-1.5">六</div>
+        <div class="grid grid-cols-7 gap-px bg-gray-200 dark:bg-gray-600">
+            <div class="bg-gray-50 dark:bg-gray-750 text-center text-xs font-medium text-gray-500 dark:text-gray-400 py-1.5">日</div>
+            <div class="bg-gray-50 dark:bg-gray-750 text-center text-xs font-medium text-gray-500 dark:text-gray-400 py-1.5">一</div>
+            <div class="bg-gray-50 dark:bg-gray-750 text-center text-xs font-medium text-gray-500 dark:text-gray-400 py-1.5">二</div>
+            <div class="bg-gray-50 dark:bg-gray-750 text-center text-xs font-medium text-gray-500 dark:text-gray-400 py-1.5">三</div>
+            <div class="bg-gray-50 dark:bg-gray-750 text-center text-xs font-medium text-gray-500 dark:text-gray-400 py-1.5">四</div>
+            <div class="bg-gray-50 dark:bg-gray-750 text-center text-xs font-medium text-gray-500 dark:text-gray-400 py-1.5">五</div>
+            <div class="bg-gray-50 dark:bg-gray-750 text-center text-xs font-medium text-gray-500 dark:text-gray-400 py-1.5">六</div>
 
             <template x-for="day in calendarDays" :key="day.key">
-                <div class="relative cal-cell bg-white p-1 cursor-pointer overflow-hidden"
-                     :class="{'ring-2 ring-pink-500': day.isToday, 'bg-gray-50': !day.inMonth}"
+                <div class="relative cal-cell bg-white dark:bg-gray-800 p-1 cursor-pointer overflow-hidden"
+                     :class="{'ring-2 ring-pink-500': day.isToday, 'bg-gray-50 dark:bg-gray-750': !day.inMonth}"
                      @click="selectDay(day)">
                     <div class="text-sm font-medium leading-none"
-                         :class="{'text-pink-600 font-bold': day.isToday, 'text-gray-900': !day.isToday && day.inMonth, 'text-gray-300': !day.inMonth}"
+                         :class="{'text-pink-600 dark:text-pink-400 font-bold': day.isToday, 'text-gray-900 dark:text-gray-100': !day.isToday && day.inMonth, 'text-gray-300 dark:text-gray-600': !day.inMonth}"
                          x-text="day.date"></div>
 
                     <template x-for="bar in day.bars" :key="bar.pid + '-' + bar.kind">
@@ -64,7 +64,7 @@
         </div>
 
         <!-- Legend -->
-        <div class="flex flex-wrap gap-4 mt-3 text-xs text-gray-600">
+        <div class="flex flex-wrap gap-4 mt-3 text-xs text-gray-600 dark:text-gray-400">
             <template x-for="(color, pid) in personColors" :key="pid">
                 <div class="flex items-center gap-1">
                     <div class="w-4 h-1.5 rounded-sm" :style="'background-color:' + color"></div>
@@ -83,21 +83,21 @@
     </div>
 
     <!-- Click action panel -->
-    <div class="mt-6 bg-white rounded-xl shadow-sm border border-gray-200 p-6" x-show="selectedDay" x-cloak>
-        <h3 class="text-sm font-semibold text-gray-700 mb-3">
+    <div class="mt-6 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6" x-show="selectedDay" x-cloak>
+        <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
             <span x-text="selectedDay ? selectedDay.fullDate : ''"></span> — 标记记录
         </h3>
 
         <div x-show="dayRecords.length > 0" class="mb-4 space-y-2">
             <template x-for="rec in dayRecords" :key="rec.id">
-                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
                     <div>
                         <span class="w-2 h-2 rounded-full inline-block mr-1" :style="'background-color:' + getColor(rec.person_id)"></span>
-                        <span class="text-sm font-medium" x-text="getPersonName(rec.person_id)"></span>
-                        <span class="text-sm text-gray-500" x-text="rec.start_date"></span>
-                        <span x-show="rec.end_date" class="text-sm text-gray-500"> ~ </span>
-                        <span x-show="rec.end_date" class="text-sm text-gray-500" x-text="rec.end_date"></span>
-                        <span x-show="rec.note" class="text-sm text-gray-400 ml-2" x-text="'(' + rec.note + ')'"></span>
+                        <span class="text-sm font-medium text-gray-800 dark:text-gray-200" x-text="familyMode ? getPersonName(rec.person_id) + ' ' : ''"></span>
+                        <span class="text-sm text-gray-500 dark:text-gray-400" x-text="rec.start_date"></span>
+                        <span x-show="rec.end_date" class="text-sm text-gray-500 dark:text-gray-400"> ~ </span>
+                        <span x-show="rec.end_date" class="text-sm text-gray-500 dark:text-gray-400" x-text="rec.end_date"></span>
+                        <span x-show="rec.note" class="text-sm text-gray-400 dark:text-gray-500 ml-2" x-text="'(' + rec.note + ')'"></span>
                     </div>
                     <form action="/record/delete" method="POST" class="inline" onsubmit="return confirm('确定删除？')">
                         <input type="hidden" name="id" :value="rec.id">
@@ -107,39 +107,40 @@
             </template>
         </div>
 
-        <div class="border-t pt-4">
-            <h4 class="text-xs font-medium text-gray-500 mb-2">标记为月经开始</h4>
+        <div class="border-t border-gray-200 dark:border-gray-600 pt-4">
+            <h4 class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">标记为月经开始</h4>
             <form action="/record/create" method="POST" class="flex items-end gap-2 mb-3">
                 <input type="hidden" name="start_date" :value="selectedDay ? selectedDay.fullDate : ''">
-                <div>
-                    <label class="block text-xs text-gray-500 mb-1">人员</label>
-                    <select name="person_id" class="border border-gray-300 rounded-lg px-2 py-1 text-sm">
+                <div x-show="familyMode">
+                    <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">人员</label>
+                    <select name="person_id" class="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg px-2 py-1 text-sm">
                         {{range .Persons}}
                         <option value="{{.ID}}">{{.Name}}</option>
                         {{end}}
                     </select>
                 </div>
+                <input x-show="!familyMode" type="hidden" name="person_id" value="{{(index .Persons 0).ID}}">
                 <div>
-                    <label class="block text-xs text-gray-500 mb-1">结束日期</label>
-                    <input type="date" name="end_date" class="border border-gray-300 rounded-lg px-2 py-1 text-sm">
+                    <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">结束日期</label>
+                    <input type="date" name="end_date" class="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg px-2 py-1 text-sm">
                 </div>
                 <div>
-                    <label class="block text-xs text-gray-500 mb-1">备注</label>
-                    <input type="text" name="note" class="border border-gray-300 rounded-lg px-2 py-1 text-sm w-28" placeholder="可选">
+                    <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">备注</label>
+                    <input type="text" name="note" class="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg px-2 py-1 text-sm w-28" placeholder="可选">
                 </div>
                 <button type="submit" class="bg-pink-600 text-white px-3 py-1 rounded-lg text-sm hover:bg-pink-700 transition whitespace-nowrap">标记开始</button>
             </form>
         </div>
 
-        <div x-show="openRecords.length > 0" class="border-t pt-4 mt-3">
-            <h4 class="text-xs font-medium text-gray-500 mb-2">标记为月经结束</h4>
+        <div x-show="openRecords.length > 0" class="border-t border-gray-200 dark:border-gray-600 pt-4 mt-3">
+            <h4 class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">标记为月经结束</h4>
             <template x-for="rec in openRecords" :key="'end-'+rec.id">
                 <form action="/record/edit" method="POST" class="flex items-center gap-2 mb-2">
                     <input type="hidden" name="id" :value="rec.id">
                     <input type="hidden" name="start_date" :value="rec.start_date">
                     <input type="hidden" name="person_id" :value="rec.person_id">
                     <span class="w-2 h-2 rounded-full" :style="'background-color:' + getColor(rec.person_id)"></span>
-                    <span class="text-sm" x-text="getPersonName(rec.person_id) + ' 开始于 ' + rec.start_date"></span>
+                    <span class="text-sm text-gray-700 dark:text-gray-300" x-text="getPersonName(rec.person_id) + ' 开始于 ' + rec.start_date"></span>
                     <input type="hidden" name="end_date" :value="selectedDay ? selectedDay.fullDate : ''">
                     <button type="submit" class="bg-purple-600 text-white px-3 py-1 rounded-lg text-sm hover:bg-purple-700 transition whitespace-nowrap">设为结束</button>
                 </form>
@@ -161,6 +162,7 @@ function calendar() {
         year: {{.Year}},
         month: {{.Month}},
         persons: {{.Persons}},
+        familyMode: false,
         personColors: {},
         activePersons: [],
         showOvulation: true,
@@ -173,10 +175,15 @@ function calendar() {
         init() {
             const settings = loadSettings();
             this.showOvulation = settings.showOvulation !== false;
+            this.familyMode = settings.familyMode === true;
             this.persons.forEach((p, i) => {
                 this.personColors[p.id] = (settings.personColors && settings.personColors[p.id]) || PERSON_COLORS[i % PERSON_COLORS.length];
             });
-            this.activePersons = this.persons.map(p => p.id);
+            if (this.familyMode) {
+                this.activePersons = this.persons.map(p => p.id);
+            } else {
+                this.activePersons = this.persons.length > 0 ? [this.persons[0].id] : [];
+            }
             this.loadData();
         },
 
