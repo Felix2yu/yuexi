@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"html/template"
 	"net/http"
 	"strconv"
 	"time"
@@ -37,10 +36,7 @@ func Home(w http.ResponseWriter, r *http.Request) {
 		"Today":         time.Now().Format("2006-01-02"),
 	}
 
-	tmpl, err := template.ParseFiles(
-		"internal/template/layout.html",
-		"internal/template/home.html",
-	)
+	tmpl, err := parseTemplates("layout.html", "home.html")
 	if err != nil {
 		http.Error(w, "Template error: "+err.Error(), 500)
 		return

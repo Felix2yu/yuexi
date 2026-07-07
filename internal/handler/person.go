@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"html/template"
 	"net/http"
 	"strconv"
 	"yuexi/internal/db"
@@ -14,10 +13,7 @@ func PersonList(w http.ResponseWriter, r *http.Request) {
 		"Persons": persons,
 	}
 
-	tmpl, err := template.ParseFiles(
-		"internal/template/layout.html",
-		"internal/template/person.html",
-	)
+	tmpl, err := parseTemplates("layout.html", "person.html")
 	if err != nil {
 		http.Error(w, "Template error: "+err.Error(), 500)
 		return
@@ -88,10 +84,7 @@ func PersonEdit(w http.ResponseWriter, r *http.Request) {
 		"Person": person,
 	}
 
-	tmpl, err := template.ParseFiles(
-		"internal/template/layout.html",
-		"internal/template/person_edit.html",
-	)
+	tmpl, err := parseTemplates("layout.html", "person_edit.html")
 	if err != nil {
 		http.Error(w, "Template error: "+err.Error(), 500)
 		return
