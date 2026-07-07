@@ -39,51 +39,72 @@ func StopNotificationChecker() {
 }
 
 func checkNotifications() {
-	cfg := db.GetNotificationConfig()
-	if !cfg.Enabled || cfg.ShoutrrrURL == "" {
-		return
-	}
-
-	persons, err := db.GetAllPersons()
-	if err != nil {
-		return
-	}
+	// Get all users who have notifications enabled
+	userIDs := getAllNotificationUserIDs()
 
 	today := time.Now()
 	todayStr := today.Format("2006-01-02")
 
-	// Don't send more than once per day
-	if cfg.LastNotified == todayStr {
-		return
-	}
-
-	for _, p := range persons {
-		records, err := db.GetRecordsByPerson(p.ID)
-		if err != nil || len(records) == 0 {
+	for _, userID := range userIDs {
+		cfg := db.GetNotificationConfig(userID)
+		if !cfg.Enabled || cfg.ShoutrrrURL == "" {
 			continue
 		}
 
-		nextPeriod := GetNextPeriodDate(p, records)
-		if nextPeriod == nil {
+		// Don't send more than once per day
+		if cfg.LastNotified == todayStr {
 			continue
 		}
 
-		daysUntil := int(nextPeriod.Sub(today).Hours() / 24)
+		persons, err := db.GetPersonsByUser(userID)
+		if err != nil {
+			continue
+		}
 
-		if daysUntil >= 0 && daysUntil <= cfg.DaysBefore {
-			msg := fmt.Sprintf("月汐提醒：%s 的月经预计在 %d 天后到来（%s）",
-				p.Name, daysUntil, nextPeriod.Format("2006-01-02"))
-
-			if err := sendNotification(cfg.ShoutrrrURL, msg); err != nil {
-				log.Printf("通知发送失败: %v", err)
+		for _, p := range persons {
+			records, err := db.GetRecordsByPerson(p.ID)
+			if err != nil || len(records) == 0 {
 				continue
 			}
-			log.Printf("通知已发送: %s", msg)
+
+			nextPeriod := GetNextPeriodDate(p, records)
+			if nextPeriod == nil {
+				continue
+			}
+
+			daysUntil := int(nextPeriod.Sub(today).Hours() / 24)
+
+			if daysUntil >= 0 && daysUntil <= cfg.DaysBefore {
+				msg := fmt.Sprintf("月汐提醒：%s 的月经预计在 %d 天后到来（%s）",
+					p.Name, daysUntil, nextPeriod.Format("2006-01-02"))
+
+				if err := sendNotification(cfg.ShoutrrrURL, msg); err != nil {
+					log.Printf("通知发送失败: %v", err)
+					continue
+				}
+				log.Printf("通知已发送: %s", msg)
+			}
+		}
+
+		db.UpdateNotificationLastNotified(userID, todayStr)
+	}
+}
+
+func getAllNotificationUserIDs() []int64 {
+	rows, err := db.DB.Query("SELECT user_id FROM notification_config WHERE enabled = 1")
+	if err != nil {
+		return nil
+	}
+	defer rows.Close()
+
+	var ids []int64
+	for rows.Next() {
+		var id int64
+		if err := rows.Scan(&id); err == nil {
+			ids = append(ids, id)
 		}
 	}
-
-	// Mark today as notified
-	db.UpdateNotificationLastNotified(todayStr)
+	return ids
 }
 
 func sendNotification(url, message string) error {

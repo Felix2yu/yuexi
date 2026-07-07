@@ -30,48 +30,52 @@ func main() {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 
-	// Pages
-	r.Get("/", handler.Home)
-	r.Get("/person", handler.PersonList)
-	r.Post("/person/create", handler.PersonCreate)
-	r.Get("/person/edit", handler.PersonEdit)
-	r.Post("/person/edit", handler.PersonEdit)
-	r.Post("/person/delete", handler.PersonDelete)
+	// Auth routes (no middleware)
+	r.Get("/login", handler.LoginPage)
+	r.Post("/login", handler.LoginPost)
+	r.Get("/register", handler.RegisterPage)
+	r.Post("/register", handler.RegisterPost)
+	r.Post("/logout", handler.LogoutPost)
 
-	// Settings
-	r.Get("/settings", handler.Settings)
+	// Protected routes
+	r.Group(func(r chi.Router) {
+		r.Use(handler.AuthMiddleware)
 
-	// Records
-	r.Post("/record/create", handler.RecordCreate)
-	r.Post("/record/edit", handler.RecordEdit)
-	r.Post("/record/delete", handler.RecordDelete)
+		r.Get("/", handler.Home)
+		r.Get("/person", handler.PersonList)
+		r.Post("/person/create", handler.PersonCreate)
+		r.Get("/person/edit", handler.PersonEdit)
+		r.Post("/person/edit", handler.PersonEdit)
+		r.Post("/person/delete", handler.PersonDelete)
 
-	// API
-	r.Get("/api/records", handler.RecordAPI)
+		r.Get("/settings", handler.Settings)
 
-	// Export/Import
-	r.Get("/export", handler.ExportPage)
-	r.Get("/export/download", handler.ExportDownload)
-	r.Post("/import", handler.ImportHandler)
+		r.Post("/record/create", handler.RecordCreate)
+		r.Post("/record/edit", handler.RecordEdit)
+		r.Post("/record/delete", handler.RecordDelete)
 
-	// Notification
-	r.Get("/api/notification", handler.NotificationConfigAPI)
-	r.Post("/api/notification", handler.NotificationConfigAPI)
-	r.Post("/api/notification/test", handler.NotificationTest)
-	r.Get("/api/notification/status", handler.NotificationStatus)
+		r.Get("/api/records", handler.RecordAPI)
 
-	// Stats
-	r.Get("/stats", handler.StatsPage)
-	r.Get("/api/stats", handler.StatsAPI)
+		r.Get("/export", handler.ExportPage)
+		r.Get("/export/download", handler.ExportDownload)
+		r.Post("/import", handler.ImportHandler)
 
-	// Daily logs
-	r.Route("/api/daily", func(r chi.Router) {
-		r.Get("/", handler.DailyLogAPI)
-		r.Post("/", handler.DailyLogAPI)
-		r.Delete("/", handler.DailyLogAPI)
+		r.Get("/api/notification", handler.NotificationConfigAPI)
+		r.Post("/api/notification", handler.NotificationConfigAPI)
+		r.Post("/api/notification/test", handler.NotificationTest)
+		r.Get("/api/notification/status", handler.NotificationStatus)
+
+		r.Get("/stats", handler.StatsPage)
+		r.Get("/api/stats", handler.StatsAPI)
+
+		r.Route("/api/daily", func(r chi.Router) {
+			r.Get("/", handler.DailyLogAPI)
+			r.Post("/", handler.DailyLogAPI)
+			r.Delete("/", handler.DailyLogAPI)
+		})
 	})
 
-	// PWA static files
+	// PWA static files (no auth)
 	r.Get("/manifest.json", handler.ServeManifest)
 	r.Get("/sw.js", handler.ServeSW)
 	r.Get("/icon-192.png", func(w http.ResponseWriter, r *http.Request) { handler.ServeIcon(w, r, 192) })

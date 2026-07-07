@@ -49,7 +49,8 @@ func ImportHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
-	count, err := service.ImportData(file)
+	userID := GetUserID(r)
+	count, err := service.ImportData(file, userID)
 	if err != nil {
 		http.Redirect(w, r, "/?import_error=1", http.StatusSeeOther)
 		return

@@ -6,11 +6,12 @@ import (
 )
 
 func Settings(w http.ResponseWriter, r *http.Request) {
-	persons, _ := db.GetAllPersons()
+	userID := GetUserID(r)
+	persons, _ := db.GetPersonsByUser(userID)
 
-	data := map[string]interface{}{
+	data := injectUser(r, map[string]interface{}{
 		"Persons": persons,
-	}
+	})
 
 	tmpl, err := parseTemplates("layout.html", "settings.html")
 	if err != nil {

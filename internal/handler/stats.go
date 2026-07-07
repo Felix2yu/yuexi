@@ -11,15 +11,16 @@ import (
 )
 
 func StatsPage(w http.ResponseWriter, r *http.Request) {
-	persons, _ := db.GetAllPersons()
+	userID := GetUserID(r)
+	persons, _ := db.GetPersonsByUser(userID)
 	if len(persons) == 0 {
 		http.Redirect(w, r, "/person", http.StatusSeeOther)
 		return
 	}
 
-	data := map[string]interface{}{
+	data := injectUser(r, map[string]interface{}{
 		"Persons": persons,
-	}
+	})
 
 	tmpl, err := parseTemplates("layout.html", "stats.html")
 	if err != nil {
@@ -32,8 +33,9 @@ func StatsPage(w http.ResponseWriter, r *http.Request) {
 
 func StatsAPI(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
+	userID := GetUserID(r)
 
-	persons, _ := db.GetAllPersons()
+	persons, _ := db.GetPersonsByUser(userID)
 	allRecords, _ := db.GetAllRecords()
 
 	result := make(map[int64]db.CycleStats)

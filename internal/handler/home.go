@@ -9,19 +9,20 @@ import (
 
 func Home(w http.ResponseWriter, r *http.Request) {
 	year, month := getYearMonth(r)
+	userID := GetUserID(r)
 
-	persons, _ := db.GetAllPersons()
+	persons, _ := db.GetPersonsByUser(userID)
 	if len(persons) == 0 {
 		http.Redirect(w, r, "/person", http.StatusSeeOther)
 		return
 	}
 
-	data := map[string]interface{}{
+	data := injectUser(r, map[string]interface{}{
 		"Persons": persons,
 		"Year":    year,
 		"Month":   month,
 		"Today":   time.Now().Format("2006-01-02"),
-	}
+	})
 
 	tmpl, err := parseTemplates("layout.html", "home.html")
 	if err != nil {

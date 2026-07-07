@@ -52,7 +52,7 @@ func ExportAll() ([]byte, error) {
 	return json.MarshalIndent(allData, "", "  ")
 }
 
-func ImportData(reader io.Reader) (int, error) {
+func ImportData(reader io.Reader, userID int64) (int, error) {
 	var allData []db.ExportData
 	if err := json.NewDecoder(reader).Decode(&allData); err != nil {
 		return 0, fmt.Errorf("invalid JSON format: %w", err)
@@ -62,7 +62,7 @@ func ImportData(reader io.Reader) (int, error) {
 	for _, data := range allData {
 		person := data.Person
 		person.ID = 0
-		newPerson, err := db.CreatePerson(person.Name, person.CycleLength, person.PeriodLength)
+		newPerson, err := db.CreatePerson(userID, person.Name, person.CycleLength, person.PeriodLength)
 		if err != nil {
 			continue
 		}

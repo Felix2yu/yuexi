@@ -16,7 +16,62 @@ func normalizeDate(s string) string {
 	return s
 }
 
+// User CRUD
+
+func CreateUser(username, passwordHash string) (*User, error) {
+	result, err := DB.Exec("INSERT INTO users (username, password_hash) VALUES (?, ?)", username, passwordHash)
+	if err != nil {
+		return nil, err
+	}
+	id, _ := result.LastInsertId()
+	return GetUser(id)
+}
+
+func GetUser(id int64) (*User, error) {
+	var u User
+	err := DB.QueryRow("SELECT id, username, password_hash, COALESCE(created_at, '') FROM users WHERE id = ?", id).
+		Scan(&u.ID, &u.Username, &u.PasswordHash, &u.CreatedAt)
+	if err != nil {
+		return nil, err
+	}
+	return &u, nil
+}
+
+func GetUserByUsername(username string) (*User, error) {
+	var u User
+	err := DB.QueryRow("SELECT id, username, password_hash, COALESCE(created_at, '') FROM users WHERE username = ?", username).
+		Scan(&u.ID, &u.Username, &u.PasswordHash, &u.CreatedAt)
+	if err != nil {
+		return nil, err
+	}
+	return &u, nil
+}
+
+func UserCount() int {
+	var cnt int
+	DB.QueryRow("SELECT COUNT(*) FROM users").Scan(&cnt)
+	return cnt
+}
+
 // Person CRUD
+
+func GetPersonsByUser(userID int64) ([]Person, error) {
+	rows, err := DB.Query("SELECT id, user_id, name, cycle_length, period_length, COALESCE(created_at, '') FROM persons WHERE user_id = ? ORDER BY id", userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var persons []Person
+	for rows.Next() {
+		var p Person
+		if err := rows.Scan(&p.ID, &p.UserID, &p.Name, &p.CycleLength, &p.PeriodLength, &p.CreatedAt); err != nil {
+			return nil, err
+		}
+		persons = append(persons, p)
+	}
+	return persons, nil
+}
 
 func GetAllPersons() ([]Person, error) {
 	rows, err := DB.Query("SELECT id, name, cycle_length, period_length, COALESCE(created_at, '') FROM persons ORDER BY id")
@@ -38,17 +93,17 @@ func GetAllPersons() ([]Person, error) {
 
 func GetPerson(id int64) (*Person, error) {
 	var p Person
-	err := DB.QueryRow("SELECT id, name, cycle_length, period_length, COALESCE(created_at, '') FROM persons WHERE id = ?", id).
-		Scan(&p.ID, &p.Name, &p.CycleLength, &p.PeriodLength, &p.CreatedAt)
+	err := DB.QueryRow("SELECT id, user_id, name, cycle_length, period_length, COALESCE(created_at, '') FROM persons WHERE id = ?", id).
+		Scan(&p.ID, &p.UserID, &p.Name, &p.CycleLength, &p.PeriodLength, &p.CreatedAt)
 	if err != nil {
 		return nil, err
 	}
 	return &p, nil
 }
 
-func CreatePerson(name string, cycleLength, periodLength int) (*Person, error) {
-	result, err := DB.Exec("INSERT INTO persons (name, cycle_length, period_length) VALUES (?, ?, ?)",
-		name, cycleLength, periodLength)
+func CreatePerson(userID int64, name string, cycleLength, periodLength int) (*Person, error) {
+	result, err := DB.Exec("INSERT INTO persons (user_id, name, cycle_length, period_length) VALUES (?, ?, ?, ?)",
+		userID, name, cycleLength, periodLength)
 	if err != nil {
 		return nil, err
 	}
@@ -200,11 +255,11 @@ type NotificationConfig struct {
 	LastNotified string `json:"last_notified"`
 }
 
-func GetNotificationConfig() NotificationConfig {
+func GetNotificationConfig(userID int64) NotificationConfig {
 	var cfg NotificationConfig
 	var enabled int
 	var daysBefore int
-	err := DB.QueryRow("SELECT enabled, shoutrrr_url, days_before, COALESCE(last_notified, '') FROM notification_config WHERE id = 1").
+	err := DB.QueryRow("SELECT enabled, shoutrrr_url, days_before, COALESCE(last_notified, '') FROM notification_config WHERE user_id = ?", userID).
 		Scan(&enabled, &cfg.ShoutrrrURL, &daysBefore, &cfg.LastNotified)
 	if err != nil {
 		return NotificationConfig{DaysBefore: 3}
@@ -214,21 +269,21 @@ func GetNotificationConfig() NotificationConfig {
 	return cfg
 }
 
-func SaveNotificationConfig(cfg NotificationConfig) error {
+func SaveNotificationConfig(userID int64, cfg NotificationConfig) error {
 	enabled := 0
 	if cfg.Enabled {
 		enabled = 1
 	}
-	_, err := DB.Exec(`INSERT INTO notification_config (id, enabled, shoutrrr_url, days_before, last_notified)
-		VALUES (1, ?, ?, ?, ?)
-		ON CONFLICT(id) DO UPDATE SET enabled=?, shoutrrr_url=?, days_before=?, last_notified=?`,
-		enabled, cfg.ShoutrrrURL, cfg.DaysBefore, cfg.LastNotified,
+	_, err := DB.Exec(`INSERT INTO notification_config (user_id, enabled, shoutrrr_url, days_before, last_notified)
+		VALUES (?, ?, ?, ?, ?)
+		ON CONFLICT(user_id) DO UPDATE SET enabled=?, shoutrrr_url=?, days_before=?, last_notified=?`,
+		userID, enabled, cfg.ShoutrrrURL, cfg.DaysBefore, cfg.LastNotified,
 		enabled, cfg.ShoutrrrURL, cfg.DaysBefore, cfg.LastNotified)
 	return err
 }
 
-func UpdateNotificationLastNotified(date string) error {
-	_, err := DB.Exec("UPDATE notification_config SET last_notified = ? WHERE id = 1", date)
+func UpdateNotificationLastNotified(userID int64, date string) error {
+	_, err := DB.Exec("UPDATE notification_config SET last_notified = ? WHERE user_id = ?", date, userID)
 	return err
 }
 

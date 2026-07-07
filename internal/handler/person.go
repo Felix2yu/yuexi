@@ -7,11 +7,12 @@ import (
 )
 
 func PersonList(w http.ResponseWriter, r *http.Request) {
-	persons, _ := db.GetAllPersons()
+	userID := GetUserID(r)
+	persons, _ := db.GetPersonsByUser(userID)
 
-	data := map[string]interface{}{
+	data := injectUser(r, map[string]interface{}{
 		"Persons": persons,
-	}
+	})
 
 	tmpl, err := parseTemplates("layout.html", "person.html")
 	if err != nil {
@@ -28,6 +29,7 @@ func PersonCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	userID := GetUserID(r)
 	name := r.FormValue("name")
 	cycleLength, _ := strconv.Atoi(r.FormValue("cycle_length"))
 	periodLength, _ := strconv.Atoi(r.FormValue("period_length"))
@@ -44,7 +46,7 @@ func PersonCreate(w http.ResponseWriter, r *http.Request) {
 		periodLength = 5
 	}
 
-	db.CreatePerson(name, cycleLength, periodLength)
+	db.CreatePerson(userID, name, cycleLength, periodLength)
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
@@ -80,9 +82,9 @@ func PersonEdit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data := map[string]interface{}{
+	data := injectUser(r, map[string]interface{}{
 		"Person": person,
-	}
+	})
 
 	tmpl, err := parseTemplates("layout.html", "person_edit.html")
 	if err != nil {

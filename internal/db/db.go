@@ -32,13 +32,22 @@ func Init(dbPath string) {
 
 func migrate() {
 	queries := []string{
+		`CREATE TABLE IF NOT EXISTS users (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			username TEXT NOT NULL UNIQUE,
+			password_hash TEXT NOT NULL,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		)`,
 		`CREATE TABLE IF NOT EXISTS persons (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			user_id INTEGER NOT NULL DEFAULT 1,
 			name TEXT NOT NULL,
 			cycle_length INTEGER NOT NULL DEFAULT 28,
 			period_length INTEGER NOT NULL DEFAULT 5,
-			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 		)`,
+		`CREATE INDEX IF NOT EXISTS idx_persons_user_id ON persons(user_id)`,
 		`CREATE TABLE IF NOT EXISTS records (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			person_id INTEGER NOT NULL,
@@ -51,12 +60,15 @@ func migrate() {
 		`CREATE INDEX IF NOT EXISTS idx_records_person_id ON records(person_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_records_start_date ON records(start_date)`,
 		`CREATE TABLE IF NOT EXISTS notification_config (
-			id INTEGER PRIMARY KEY CHECK (id = 1),
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			user_id INTEGER NOT NULL DEFAULT 1,
 			enabled INTEGER NOT NULL DEFAULT 0,
 			shoutrrr_url TEXT NOT NULL DEFAULT '',
 			days_before INTEGER NOT NULL DEFAULT 3,
-			last_notified TEXT DEFAULT ''
+			last_notified TEXT DEFAULT '',
+			FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 		)`,
+		`CREATE UNIQUE INDEX IF NOT EXISTS idx_notification_config_user ON notification_config(user_id)`,
 		`CREATE TABLE IF NOT EXISTS daily_logs (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			person_id INTEGER NOT NULL,
@@ -75,6 +87,25 @@ func migrate() {
 		if _, err := DB.Exec(q); err != nil {
 			log.Fatalf("Migration failed: %v\nQuery: %s", err, q)
 		}
+	}
+
+	// Migration: add user_id columns to existing tables if missing
+	migrateAddColumn("persons", "user_id", "INTEGER NOT NULL DEFAULT 1")
+	migrateAddColumn("notification_config", "user_id", "INTEGER NOT NULL DEFAULT 1")
+
+	// Migrate notification_config from single-row to per-user
+	var count int
+	DB.QueryRow("SELECT COUNT(*) FROM notification_config").Scan(&count)
+	if count == 0 {
+		DB.Exec("INSERT INTO notification_config (user_id, enabled, shoutrrr_url, days_before) VALUES (1, 0, '', 3)")
+	}
+}
+
+func migrateAddColumn(table, column, typedef string) {
+	var cnt int
+	err := DB.QueryRow("SELECT COUNT(*) FROM pragma_table_info(?) WHERE name=?", table, column).Scan(&cnt)
+	if err != nil || cnt == 0 {
+		DB.Exec("ALTER TABLE " + table + " ADD COLUMN " + column + " " + typedef)
 	}
 }
 

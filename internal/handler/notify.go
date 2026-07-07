@@ -10,9 +10,10 @@ import (
 
 func NotificationConfigAPI(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
+	userID := GetUserID(r)
 
 	if r.Method == http.MethodGet {
-		cfg := db.GetNotificationConfig()
+		cfg := db.GetNotificationConfig(userID)
 		json.NewEncoder(w).Encode(cfg)
 		return
 	}
@@ -23,7 +24,7 @@ func NotificationConfigAPI(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, `{"error":"invalid request"}`, 400)
 			return
 		}
-		if err := db.SaveNotificationConfig(cfg); err != nil {
+		if err := db.SaveNotificationConfig(userID, cfg); err != nil {
 			http.Error(w, `{"error":"save failed"}`, 500)
 			return
 		}
@@ -58,9 +59,10 @@ func NotificationTest(w http.ResponseWriter, r *http.Request) {
 
 func NotificationStatus(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
+	userID := GetUserID(r)
 
-	cfg := db.GetNotificationConfig()
-	persons, _ := db.GetAllPersons()
+	cfg := db.GetNotificationConfig(userID)
+	persons, _ := db.GetPersonsByUser(userID)
 
 	type personNext struct {
 		Name       string `json:"name"`

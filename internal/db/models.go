@@ -1,7 +1,15 @@
 package db
 
+type User struct {
+	ID           int64  `json:"id"`
+	Username     string `json:"username"`
+	PasswordHash string `json:"-"`
+	CreatedAt    string `json:"created_at"`
+}
+
 type Person struct {
 	ID           int64  `json:"id"`
+	UserID       int64  `json:"user_id"`
 	Name         string `json:"name"`
 	CycleLength  int    `json:"cycle_length"`
 	PeriodLength int    `json:"period_length"`

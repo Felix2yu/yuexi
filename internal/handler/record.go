@@ -9,10 +9,9 @@ import (
 	"yuexi/internal/service"
 )
 
-
-
 func RecordAPI(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
+	userID := GetUserID(r)
 
 	year, _ := strconv.Atoi(r.URL.Query().Get("year"))
 	month, _ := strconv.Atoi(r.URL.Query().Get("month"))
@@ -22,12 +21,15 @@ func RecordAPI(w http.ResponseWriter, r *http.Request) {
 		month = int(now.Month())
 	}
 
-	persons, _ := db.GetAllPersons()
+	persons, _ := db.GetPersonsByUser(userID)
 	allRecords, _ := db.GetAllRecords()
 
 	var allPeriods, allOvulations []db.DateRange
 
 	for _, p := range persons {
+		if p.UserID != userID {
+			continue
+		}
 		var recs []db.Record
 		for _, r := range allRecords {
 			if r.PersonID == p.ID {
@@ -71,10 +73,9 @@ func RecordCreate(w http.ResponseWriter, r *http.Request) {
 
 	db.CreateRecord(personID, startDate, endDate, note)
 
-	// Redirect back to referer or home
 	referer := r.Header.Get("Referer")
 	if referer == "" {
-		referer = "/?person_id=" + strconv.FormatInt(personID, 10)
+		referer = "/"
 	}
 	http.Redirect(w, r, referer, http.StatusSeeOther)
 }
@@ -88,7 +89,6 @@ func RecordEdit(w http.ResponseWriter, r *http.Request) {
 	id, _ := strconv.ParseInt(r.FormValue("id"), 10, 64)
 	startDate := r.FormValue("start_date")
 	note := r.FormValue("note")
-	personID, _ := strconv.ParseInt(r.FormValue("person_id"), 10, 64)
 
 	var endDate *string
 	if ed := r.FormValue("end_date"); ed != "" {
@@ -104,14 +104,13 @@ func RecordEdit(w http.ResponseWriter, r *http.Request) {
 
 	referer := r.Header.Get("Referer")
 	if referer == "" {
-		referer = "/?person_id=" + strconv.FormatInt(personID, 10)
+		referer = "/"
 	}
 	http.Redirect(w, r, referer, http.StatusSeeOther)
 }
 
 func RecordDelete(w http.ResponseWriter, r *http.Request) {
 	id, _ := strconv.ParseInt(r.FormValue("id"), 10, 64)
-	personID := r.FormValue("person_id")
 
 	if id != 0 {
 		db.DeleteRecord(id)
@@ -119,7 +118,7 @@ func RecordDelete(w http.ResponseWriter, r *http.Request) {
 
 	referer := r.Header.Get("Referer")
 	if referer == "" {
-		referer = "/?person_id=" + personID
+		referer = "/"
 	}
 	http.Redirect(w, r, referer, http.StatusSeeOther)
 }
