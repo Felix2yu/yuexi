@@ -65,7 +65,8 @@ func main() {
 	r.Get("/sw.js", handler.ServeSW)
 	r.Get("/icon-192.png", func(w http.ResponseWriter, r *http.Request) { handler.ServeIcon(w, r, 192) })
 	r.Get("/icon-512.png", func(w http.ResponseWriter, r *http.Request) { handler.ServeIcon(w, r, 512) })
-	r.Get("/favicon.ico", func(w http.ResponseWriter, r *http.Request) { handler.ServeIcon(w, r, 32) })
+	r.Get("/favicon.ico", handler.ServeFavicon)
+	r.Get("/favicon.png", func(w http.ResponseWriter, r *http.Request) { handler.ServeIcon(w, r, 32) })
 
 	// Start notification checker
 	service.StartNotificationChecker()

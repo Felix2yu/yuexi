@@ -35,6 +35,13 @@ func ServeIcon(w http.ResponseWriter, r *http.Request, size int) {
 	png.Encode(w, img)
 }
 
+func ServeFavicon(w http.ResponseWriter, r *http.Request) {
+	img := generateIcon(32)
+	w.Header().Set("Content-Type", "image/x-icon")
+	w.Header().Set("Cache-Control", "no-cache")
+	png.Encode(w, img)
+}
+
 func generateIcon(size int) image.Image {
 	img := image.NewRGBA(image.Rect(0, 0, size, size))
 	cx, cy := float64(size)/2, float64(size)/2
