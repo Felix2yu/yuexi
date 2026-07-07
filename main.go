@@ -60,6 +60,17 @@ func main() {
 	r.Post("/api/notification/test", handler.NotificationTest)
 	r.Get("/api/notification/status", handler.NotificationStatus)
 
+	// Stats
+	r.Get("/stats", handler.StatsPage)
+	r.Get("/api/stats", handler.StatsAPI)
+
+	// Daily logs
+	r.Route("/api/daily", func(r chi.Router) {
+		r.Get("/", handler.DailyLogAPI)
+		r.Post("/", handler.DailyLogAPI)
+		r.Delete("/", handler.DailyLogAPI)
+	})
+
 	// PWA static files
 	r.Get("/manifest.json", handler.ServeManifest)
 	r.Get("/sw.js", handler.ServeSW)

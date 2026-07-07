@@ -112,3 +112,16 @@ func GetOvulationDate(person db.Person, records []db.Record) *time.Time {
 	ovulation := nextPeriod.AddDate(0, 0, -14)
 	return &ovulation
 }
+
+func SortRecordsByDate(records []db.Record) []db.Record {
+	sorted := make([]db.Record, len(records))
+	copy(sorted, records)
+	for i := 0; i < len(sorted); i++ {
+		for j := i + 1; j < len(sorted); j++ {
+			if sorted[j].StartDate < sorted[i].StartDate {
+				sorted[i], sorted[j] = sorted[j], sorted[i]
+			}
+		}
+	}
+	return sorted
+}

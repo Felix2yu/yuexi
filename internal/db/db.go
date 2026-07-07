@@ -57,6 +57,18 @@ func migrate() {
 			days_before INTEGER NOT NULL DEFAULT 3,
 			last_notified TEXT DEFAULT ''
 		)`,
+		`CREATE TABLE IF NOT EXISTS daily_logs (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			person_id INTEGER NOT NULL,
+			date DATE NOT NULL,
+			flow_level INTEGER DEFAULT 0,
+			symptoms TEXT DEFAULT '',
+			note TEXT DEFAULT '',
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			UNIQUE(person_id, date),
+			FOREIGN KEY (person_id) REFERENCES persons(id) ON DELETE CASCADE
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_daily_logs_person_date ON daily_logs(person_id, date)`,
 	}
 
 	for _, q := range queries {

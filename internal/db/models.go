@@ -25,6 +25,33 @@ type DateRange struct {
 }
 
 type ExportData struct {
-	Person  Person   `json:"person"`
-	Records []Record `json:"records"`
+	Person   Person     `json:"person"`
+	Records  []Record   `json:"records"`
+	DailyLogs []DailyLog `json:"daily_logs,omitempty"`
+}
+
+type DailyLog struct {
+	ID        int64  `json:"id"`
+	PersonID  int64  `json:"person_id"`
+	Date      string `json:"date"`
+	FlowLevel int    `json:"flow_level"`
+	Symptoms  string `json:"symptoms"`
+	Note      string `json:"note"`
+	CreatedAt string `json:"created_at"`
+}
+
+type CycleStats struct {
+	AvgCycleLength  float64        `json:"avg_cycle_length"`
+	MinCycleLength  int            `json:"min_cycle_length"`
+	MaxCycleLength  int            `json:"max_cycle_length"`
+	AvgPeriodLength float64        `json:"avg_period_length"`
+	CycleCount      int            `json:"cycle_count"`
+	CycleLengths    []CycleDataPoint `json:"cycle_lengths"`
+	PeriodLengths   []CycleDataPoint `json:"period_lengths"`
+	Regularity      string         `json:"regularity"`
+}
+
+type CycleDataPoint struct {
+	Label string  `json:"label"`
+	Value float64 `json:"value"`
 }

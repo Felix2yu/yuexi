@@ -231,3 +231,71 @@ func UpdateNotificationLastNotified(date string) error {
 	_, err := DB.Exec("UPDATE notification_config SET last_notified = ? WHERE id = 1", date)
 	return err
 }
+
+// DailyLog CRUD
+
+func GetDailyLogsByPerson(personID int64) ([]DailyLog, error) {
+	rows, err := DB.Query("SELECT id, person_id, date, flow_level, COALESCE(symptoms, ''), COALESCE(note, ''), COALESCE(created_at, '') FROM daily_logs WHERE person_id = ? ORDER BY date DESC", personID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	logs := make([]DailyLog, 0)
+	for rows.Next() {
+		var l DailyLog
+		if err := rows.Scan(&l.ID, &l.PersonID, &l.Date, &l.FlowLevel, &l.Symptoms, &l.Note, &l.CreatedAt); err != nil {
+			return nil, err
+		}
+		l.Date = normalizeDate(l.Date)
+		l.CreatedAt = normalizeDate(l.CreatedAt)
+		logs = append(logs, l)
+	}
+	return logs, nil
+}
+
+func GetDailyLog(personID int64, date string) (*DailyLog, error) {
+	var l DailyLog
+	err := DB.QueryRow("SELECT id, person_id, date, flow_level, COALESCE(symptoms, ''), COALESCE(note, ''), COALESCE(created_at, '') FROM daily_logs WHERE person_id = ? AND date = ?", personID, date).
+		Scan(&l.ID, &l.PersonID, &l.Date, &l.FlowLevel, &l.Symptoms, &l.Note, &l.CreatedAt)
+	if err != nil {
+		return nil, err
+	}
+	l.Date = normalizeDate(l.Date)
+	l.CreatedAt = normalizeDate(l.CreatedAt)
+	return &l, nil
+}
+
+func UpsertDailyLog(personID int64, date string, flowLevel int, symptoms, note string) error {
+	_, err := DB.Exec(`INSERT INTO daily_logs (person_id, date, flow_level, symptoms, note)
+		VALUES (?, ?, ?, ?, ?)
+		ON CONFLICT(person_id, date) DO UPDATE SET flow_level=?, symptoms=?, note=?`,
+		personID, date, flowLevel, symptoms, note,
+		flowLevel, symptoms, note)
+	return err
+}
+
+func DeleteDailyLog(personID int64, date string) error {
+	_, err := DB.Exec("DELETE FROM daily_logs WHERE person_id = ? AND date = ?", personID, date)
+	return err
+}
+
+func GetAllDailyLogs() ([]DailyLog, error) {
+	rows, err := DB.Query("SELECT id, person_id, date, flow_level, COALESCE(symptoms, ''), COALESCE(note, ''), COALESCE(created_at, '') FROM daily_logs ORDER BY date DESC")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	logs := make([]DailyLog, 0)
+	for rows.Next() {
+		var l DailyLog
+		if err := rows.Scan(&l.ID, &l.PersonID, &l.Date, &l.FlowLevel, &l.Symptoms, &l.Note, &l.CreatedAt); err != nil {
+			return nil, err
+		}
+		l.Date = normalizeDate(l.Date)
+		l.CreatedAt = normalizeDate(l.CreatedAt)
+		logs = append(logs, l)
+	}
+	return logs, nil
+}

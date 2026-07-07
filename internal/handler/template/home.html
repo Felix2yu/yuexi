@@ -146,6 +146,49 @@
                 </form>
             </template>
         </div>
+
+        <!-- Daily log: flow & symptoms -->
+        <div class="border-t border-gray-200 dark:border-gray-600 pt-4 mt-3">
+            <h4 class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">经量与症状</h4>
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">经量</label>
+                    <div class="flex gap-2">
+                        <template x-for="(label, level) in flowLevels" :key="level">
+                            <button type="button" @click="setFlowLevel(level)"
+                                class="px-3 py-1 rounded-lg text-xs border transition-all"
+                                :class="dailyLog.flow_level == level
+                                    ? 'border-pink-500 bg-pink-50 dark:bg-pink-900/30 text-pink-700 dark:text-pink-300'
+                                    : 'border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-gray-300'"
+                                x-text="label">
+                            </button>
+                        </template>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">症状（点击选择）</label>
+                    <div class="flex flex-wrap gap-1.5">
+                        <template x-for="s in symptomOptions" :key="s">
+                            <button type="button" @click="toggleSymptom(s)"
+                                class="px-2 py-0.5 rounded-full text-xs border transition-all"
+                                :class="dailyLog.symptoms.includes(s)
+                                    ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300'
+                                    : 'border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:border-gray-300'"
+                                x-text="s">
+                            </button>
+                        </template>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button type="button" @click="saveDailyLog()"
+                        class="bg-pink-600 text-white px-3 py-1 rounded-lg text-sm hover:bg-pink-700 transition"
+                        :disabled="dailyLogSaving"
+                        x-text="dailyLogSaving ? '保存中...' : '保存'">
+                    </button>
+                    <span x-show="dailyLogSaved" class="text-xs text-green-600 dark:text-green-400">已保存</span>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -166,6 +209,11 @@ function calendar() {
         records: [],
         selectedDay: null,
         calendarDays: [],
+        dailyLog: { flow_level: 0, symptoms: '', note: '' },
+        dailyLogSaving: false,
+        dailyLogSaved: false,
+        flowLevels: { 0: '无', 1: '少', 2: '中', 3: '多' },
+        symptomOptions: ['痛经', '头痛', '腰酸', '腹胀', '疲劳', '情绪波动', '乳房胀痛', '恶心', '失眠', '食欲变化'],
 
         init() {
             const settings = loadSettings();
@@ -249,7 +297,62 @@ function calendar() {
             return { key: fullDate, date, fullDate, inMonth, isToday: fullDate === todayStr, bars, ovulationPids };
         },
 
-        selectDay(day) { if (day.inMonth) this.selectedDay = day; },
+        selectDay(day) {
+            if (day.inMonth) {
+                this.selectedDay = day;
+                this.loadDailyLog();
+            }
+        },
+
+        async loadDailyLog() {
+            if (!this.selectedDay || this.persons.length === 0) return;
+            const pid = this.persons[0].id;
+            try {
+                const resp = await fetch('/api/daily/?person_id=' + pid);
+                const logs = await resp.json();
+                const log = logs.find(l => l.date === this.selectedDay.fullDate);
+                if (log) {
+                    this.dailyLog = { flow_level: log.flow_level, symptoms: log.symptoms || '', note: log.note || '' };
+                } else {
+                    this.dailyLog = { flow_level: 0, symptoms: '', note: '' };
+                }
+            } catch(e) {
+                this.dailyLog = { flow_level: 0, symptoms: '', note: '' };
+            }
+            this.dailyLogSaved = false;
+        },
+
+        setFlowLevel(level) {
+            this.dailyLog.flow_level = this.dailyLog.flow_level == level ? 0 : level;
+        },
+
+        toggleSymptom(s) {
+            const parts = this.dailyLog.symptoms ? this.dailyLog.symptoms.split(',').filter(x => x) : [];
+            const idx = parts.indexOf(s);
+            if (idx >= 0) parts.splice(idx, 1);
+            else parts.push(s);
+            this.dailyLog.symptoms = parts.join(',');
+        },
+
+        async saveDailyLog() {
+            if (!this.selectedDay || this.persons.length === 0) return;
+            this.dailyLogSaving = true;
+            try {
+                await fetch('/api/daily/?person_id=' + this.persons[0].id, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        date: this.selectedDay.fullDate,
+                        flow_level: this.dailyLog.flow_level,
+                        symptoms: this.dailyLog.symptoms,
+                        note: this.dailyLog.note
+                    })
+                });
+                this.dailyLogSaved = true;
+                setTimeout(() => this.dailyLogSaved = false, 2000);
+            } catch(e) {}
+            this.dailyLogSaving = false;
+        },
 
         get dayRecords() {
             if (!this.selectedDay) return [];

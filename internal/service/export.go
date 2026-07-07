@@ -18,9 +18,12 @@ func ExportPerson(personID int64) ([]byte, error) {
 		return nil, fmt.Errorf("failed to get records: %w", err)
 	}
 
+	logs, _ := db.GetDailyLogsByPerson(personID)
+
 	data := db.ExportData{
-		Person:  *person,
-		Records: records,
+		Person:    *person,
+		Records:   records,
+		DailyLogs: logs,
 	}
 
 	return json.MarshalIndent(data, "", "  ")
@@ -38,9 +41,11 @@ func ExportAll() ([]byte, error) {
 		if err != nil {
 			continue
 		}
+		logs, _ := db.GetDailyLogsByPerson(p.ID)
 		allData = append(allData, db.ExportData{
-			Person:  p,
-			Records: records,
+			Person:    p,
+			Records:   records,
+			DailyLogs: logs,
 		})
 	}
 
@@ -70,6 +75,12 @@ func ImportData(reader io.Reader) (int, error) {
 				continue
 			}
 			count++
+		}
+
+		for _, log := range data.DailyLogs {
+			log.ID = 0
+			log.PersonID = newPerson.ID
+			db.UpsertDailyLog(newPerson.ID, log.Date, log.FlowLevel, log.Symptoms, log.Note)
 		}
 	}
 

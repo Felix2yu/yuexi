@@ -1,0 +1,175 @@
+{{define "content"}}
+<div x-data="stats()" x-init="init()" class="max-w-4xl mx-auto">
+    <div class="flex items-center justify-between mb-6">
+        <h1 class="text-lg font-semibold text-gray-800 dark:text-gray-100">统计分析</h1>
+        <div x-show="persons.length > 1" class="flex items-center gap-2">
+            <select x-model="selectedPerson" @change="loadStats()" class="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg px-3 py-1.5 text-sm">
+                <template x-for="p in persons" :key="p.id">
+                    <option :value="p.id" x-text="p.name"></option>
+                </template>
+            </select>
+        </div>
+    </div>
+
+    <!-- Stats cards -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 text-center">
+            <div class="text-2xl font-bold text-pink-600 dark:text-pink-400" x-text="statsData.avg_cycle_length || '-'"></div>
+            <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">平均周期（天）</div>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 text-center">
+            <div class="text-2xl font-bold text-purple-600 dark:text-purple-400" x-text="statsData.avg_period_length || '-'"></div>
+            <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">平均经期（天）</div>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 text-center">
+            <div class="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                <span x-text="statsData.min_cycle_length || '-'"></span>
+                <span class="text-sm font-normal text-gray-400">~</span>
+                <span x-text="statsData.max_cycle_length || '-'"></span>
+            </div>
+            <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">周期范围（天）</div>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 text-center">
+            <div class="text-lg font-bold" :class="{
+                'text-green-600 dark:text-green-400': statsData.regularity === '非常规律',
+                'text-emerald-600 dark:text-emerald-400': statsData.regularity === '较为规律',
+                'text-yellow-600 dark:text-yellow-400': statsData.regularity === '略有波动',
+                'text-red-600 dark:text-red-400': statsData.regularity === '波动较大',
+            }" x-text="statsData.regularity || '暂无数据'"></div>
+            <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">规律性评估</div>
+        </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+            <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">周期长度趋势</h3>
+            <div class="relative" style="height: 200px">
+                <canvas id="cycleChart"></canvas>
+            </div>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+            <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">经期天数趋势</h3>
+            <div class="relative" style="height: 200px">
+                <canvas id="periodChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent cycle history -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 mb-6" x-show="statsData.cycle_lengths && statsData.cycle_lengths.length > 0">
+        <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">近期周期记录</h3>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-600">
+                        <th class="text-left py-2 font-medium">开始日期</th>
+                        <th class="text-right py-2 font-medium">周期天数</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <template x-for="(cp, idx) in (statsData.cycle_lengths || []).slice().reverse()" :key="idx">
+                        <tr class="border-b border-gray-100 dark:border-gray-700">
+                            <td class="py-2 text-gray-800 dark:text-gray-200" x-text="cp.label"></td>
+                            <td class="py-2 text-right font-mono" :class="{
+                                'text-green-600 dark:text-green-400': cp.value >= 25 && cp.value <= 35,
+                                'text-yellow-600 dark:text-yellow-400': (cp.value < 25 || cp.value > 35) && cp.value >= 20 && cp.value <= 45,
+                                'text-red-600 dark:text-red-400': cp.value < 20 || cp.value > 45,
+                            }" x-text="cp.value + '天'"></td>
+                        </tr>
+                    </template>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<script>
+function stats() {
+    return {
+        persons: [],
+        selectedPerson: null,
+        statsData: {},
+        cycleChart: null,
+        periodChart: null,
+
+        async init() {
+            const resp = await fetch('/api/records?year=' + new Date().getFullYear() + '&month=' + (new Date().getMonth()+1));
+            const data = await resp.json();
+            this.persons = data.persons || [];
+            if (this.persons.length > 0) {
+                this.selectedPerson = this.persons[0].id;
+                this.loadStats();
+            }
+        },
+
+        async loadStats() {
+            if (!this.selectedPerson) return;
+            const resp = await fetch('/api/stats');
+            const allStats = await resp.json();
+            this.statsData = allStats[this.selectedPerson] || {};
+            this.$nextTick(() => this.renderCharts());
+        },
+
+        renderCharts() {
+            const textColor = document.documentElement.classList.contains('dark') ? '#9ca3af' : '#6b7280';
+            const gridColor = document.documentElement.classList.contains('dark') ? '#374151' : '#e5e7eb';
+            const chartOpts = {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { ticks: { color: textColor, maxRotation: 45, font: { size: 10 } }, grid: { color: gridColor } },
+                    y: { ticks: { color: textColor, font: { size: 10 } }, grid: { color: gridColor }, beginAtZero: false }
+                }
+            };
+
+            // Cycle chart
+            const cycleData = (this.statsData.cycle_lengths || []).slice(-12);
+            if (this.cycleChart) this.cycleChart.destroy();
+            const ctx1 = document.getElementById('cycleChart');
+            if (ctx1) {
+                this.cycleChart = new Chart(ctx1, {
+                    type: 'line',
+                    data: {
+                        labels: cycleData.map(d => d.label.substring(5)),
+                        datasets: [{
+                            data: cycleData.map(d => d.value),
+                            borderColor: '#ec4899',
+                            backgroundColor: 'rgba(236,72,153,0.1)',
+                            fill: true,
+                            tension: 0.3,
+                            pointRadius: 4,
+                            pointBackgroundColor: '#ec4899'
+                        }]
+                    },
+                    options: { ...chartOpts, scales: { ...chartOpts.scales, y: { ...chartOpts.scales.y, title: { display: true, text: '天', color: textColor } } } }
+                });
+            }
+
+            // Period chart
+            const periodData = (this.statsData.period_lengths || []).slice(-12);
+            if (this.periodChart) this.periodChart.destroy();
+            const ctx2 = document.getElementById('periodChart');
+            if (ctx2) {
+                this.periodChart = new Chart(ctx2, {
+                    type: 'bar',
+                    data: {
+                        labels: periodData.map(d => d.label.substring(5)),
+                        datasets: [{
+                            data: periodData.map(d => d.value),
+                            backgroundColor: 'rgba(139,92,246,0.6)',
+                            borderColor: '#8b5cf6',
+                            borderWidth: 1,
+                            borderRadius: 4
+                        }]
+                    },
+                    options: chartOpts
+                });
+            }
+        }
+    }
+}
+</script>
+{{end}}
