@@ -1,11 +1,11 @@
 {{define "content"}}
 <style>
     .cal-cell { aspect-ratio: 1; }
-    .cal-bar { position: absolute; bottom: 2px; height: 6px; border-radius: 3px; left: 0; right: 0; }
-    .cal-bar-start { right: -2px; border-radius: 3px 0 0 3px; }
+    .cal-bar { position: absolute; bottom: 2px; height: 12px; border-radius: 6px; left: 0; right: 0; }
+    .cal-bar-start { right: -2px; border-radius: 6px 0 0 6px; }
     .cal-bar-mid { left: -2px; right: -2px; border-radius: 0; }
-    .cal-bar-end { left: -2px; border-radius: 0 3px 3px 0; }
-    .cal-bar-single { border-radius: 3px; }
+    .cal-bar-end { left: -2px; border-radius: 0 6px 6px 0; }
+    .cal-bar-single { border-radius: 6px; }
 </style>
 
 <div x-data="calendar()" x-init="init()">
@@ -151,6 +151,11 @@
 <script>
 const PERSON_COLORS = ['#ef4444','#3b82f6','#10b981','#f59e0b','#8b5cf6','#ec4899','#14b8a6','#f97316'];
 
+function loadSettings() {
+    try { return JSON.parse(localStorage.getItem('yuexi_settings') || '{}'); } catch { return {}; }
+}
+function saveSettings(s) { localStorage.setItem('yuexi_settings', JSON.stringify(s)); }
+
 function calendar() {
     return {
         year: {{.Year}},
@@ -158,6 +163,7 @@ function calendar() {
         persons: {{.Persons}},
         personColors: {},
         activePersons: [],
+        showOvulation: true,
         periods: [],
         ovulations: [],
         records: [],
@@ -165,8 +171,10 @@ function calendar() {
         calendarDays: [],
 
         init() {
+            const settings = loadSettings();
+            this.showOvulation = settings.showOvulation !== false;
             this.persons.forEach((p, i) => {
-                this.personColors[p.id] = PERSON_COLORS[i % PERSON_COLORS.length];
+                this.personColors[p.id] = (settings.personColors && settings.personColors[p.id]) || PERSON_COLORS[i % PERSON_COLORS.length];
             });
             this.activePersons = this.persons.map(p => p.id);
             this.loadData();
@@ -228,11 +236,13 @@ function calendar() {
                     bars.push({ pid: p.person_id, kind: p.type === 'period' ? 'actual' : 'predicted', pos });
                 }
             });
-            this.ovulations.forEach(o => {
-                if (fullDate === o.start && o.type === 'ovulation_day') {
-                    ovulationPids.push(o.person_id);
-                }
-            });
+            if (this.showOvulation) {
+                this.ovulations.forEach(o => {
+                    if (fullDate === o.start && o.type === 'ovulation_day') {
+                        ovulationPids.push(o.person_id);
+                    }
+                });
+            }
 
             return { key: fullDate, date, fullDate, inMonth, isToday: fullDate === todayStr, bars, ovulationPids };
         },

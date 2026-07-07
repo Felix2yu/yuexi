@@ -37,6 +37,9 @@ func main() {
 	r.Post("/person/edit", handler.PersonEdit)
 	r.Post("/person/delete", handler.PersonDelete)
 
+	// Settings
+	r.Get("/settings", handler.Settings)
+
 	// Records
 	r.Post("/record/create", handler.RecordCreate)
 	r.Post("/record/edit", handler.RecordEdit)
