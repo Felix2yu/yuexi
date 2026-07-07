@@ -1,6 +1,15 @@
 {{define "content"}}
+<style>
+    .cal-cell { aspect-ratio: 1; }
+    .cal-bar { position: absolute; bottom: 2px; height: 6px; border-radius: 3px; left: 0; right: 0; }
+    .cal-bar-start { right: -2px; border-radius: 3px 0 0 3px; }
+    .cal-bar-mid { left: -2px; right: -2px; border-radius: 0; }
+    .cal-bar-end { left: -2px; border-radius: 0 3px 3px 0; }
+    .cal-bar-single { border-radius: 3px; }
+</style>
+
 <div x-data="calendar()" x-init="init()">
-    <!-- Person legend with colors -->
+    <!-- Person legend -->
     <div class="mb-6 flex flex-wrap items-center gap-3">
         <span class="text-sm text-gray-600 font-medium">人员：</span>
         {{range $i, $p := .Persons}}
@@ -13,8 +22,8 @@
     </div>
 
     <!-- Calendar -->
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <div class="flex items-center justify-between mb-4">
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+        <div class="flex items-center justify-between mb-3">
             <button @click="prevMonth()" class="p-2 hover:bg-gray-100 rounded-lg transition">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
             </button>
@@ -24,60 +33,61 @@
             </button>
         </div>
 
-        <div class="grid grid-cols-7 gap-1 mb-2">
-            <div class="text-center text-xs font-medium text-gray-500 py-1">日</div>
-            <div class="text-center text-xs font-medium text-gray-500 py-1">一</div>
-            <div class="text-center text-xs font-medium text-gray-500 py-1">二</div>
-            <div class="text-center text-xs font-medium text-gray-500 py-1">三</div>
-            <div class="text-center text-xs font-medium text-gray-500 py-1">四</div>
-            <div class="text-center text-xs font-medium text-gray-500 py-1">五</div>
-            <div class="text-center text-xs font-medium text-gray-500 py-1">六</div>
-        </div>
+        <div class="grid grid-cols-7 gap-px bg-gray-200">
+            <div class="bg-gray-50 text-center text-xs font-medium text-gray-500 py-1.5">日</div>
+            <div class="bg-gray-50 text-center text-xs font-medium text-gray-500 py-1.5">一</div>
+            <div class="bg-gray-50 text-center text-xs font-medium text-gray-500 py-1.5">二</div>
+            <div class="bg-gray-50 text-center text-xs font-medium text-gray-500 py-1.5">三</div>
+            <div class="bg-gray-50 text-center text-xs font-medium text-gray-500 py-1.5">四</div>
+            <div class="bg-gray-50 text-center text-xs font-medium text-gray-500 py-1.5">五</div>
+            <div class="bg-gray-50 text-center text-xs font-medium text-gray-500 py-1.5">六</div>
 
-        <div class="grid grid-cols-7 gap-1">
             <template x-for="day in calendarDays" :key="day.key">
-                <div class="relative min-h-[52px] border rounded-lg p-1 cursor-pointer transition-all"
-                     :class="dayClasses(day)"
+                <div class="relative cal-cell bg-white p-1 cursor-pointer overflow-hidden"
+                     :class="{'ring-2 ring-pink-500': day.isToday, 'bg-gray-50': !day.inMonth}"
                      @click="selectDay(day)">
-                    <div class="text-sm font-medium"
+                    <div class="text-sm font-medium leading-none"
                          :class="{'text-pink-600 font-bold': day.isToday, 'text-gray-900': !day.isToday && day.inMonth, 'text-gray-300': !day.inMonth}"
-                         x-text="day.date">
-                    </div>
-                    <!-- Person dots -->
-                    <div class="flex flex-wrap gap-0.5 mt-0.5">
-                        <template x-for="pid in day.personPeriods" :key="'p-'+pid">
-                            <div class="w-1.5 h-1.5 rounded-full" :style="'background-color:' + getColor(pid)"></div>
-                        </template>
-                        <template x-for="pid in day.personPredicted" :key="'pp-'+pid">
-                            <div class="w-1.5 h-1.5 rounded-full opacity-50" :style="'background-color:' + getColor(pid)"></div>
-                        </template>
-                        <template x-for="pid in day.personOvulation" :key="'o-'+pid">
-                            <div class="w-1.5 h-1.5 rounded-full bg-green-500"></div>
-                        </template>
-                    </div>
+                         x-text="day.date"></div>
+
+                    <template x-for="bar in day.bars" :key="bar.pid + '-' + bar.kind">
+                        <div class="cal-bar" :class="'cal-bar-' + bar.pos"
+                             :style="'background-color:' + getColor(bar.pid) + (bar.kind === 'predicted' ? ';opacity:0.4' : '')">
+                        </div>
+                    </template>
+
+                    <template x-for="pid in day.ovulationPids" :key="'ov-'+pid">
+                        <div class="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-green-500"></div>
+                    </template>
                 </div>
             </template>
         </div>
 
         <!-- Legend -->
-        <div class="flex flex-wrap gap-4 mt-4 text-xs text-gray-600">
+        <div class="flex flex-wrap gap-4 mt-3 text-xs text-gray-600">
             <template x-for="(color, pid) in personColors" :key="pid">
                 <div class="flex items-center gap-1">
-                    <div class="w-3 h-3 rounded-full" :style="'background-color:' + color"></div>
+                    <div class="w-4 h-1.5 rounded-sm" :style="'background-color:' + color"></div>
                     <span x-text="getPersonName(pid)"></span>
                 </div>
             </template>
-            <div class="flex items-center gap-1"><div class="w-3 h-3 rounded-full bg-green-500"></div> 排卵日</div>
+            <div class="flex items-center gap-1">
+                <div class="w-4 h-1.5 rounded-sm bg-gray-400 opacity-40"></div>
+                <span>预测</span>
+            </div>
+            <div class="flex items-center gap-1">
+                <div class="w-1.5 h-1.5 rounded-full bg-green-500"></div>
+                <span>排卵日</span>
+            </div>
         </div>
     </div>
 
-    <!-- Click action: mark start or end -->
+    <!-- Click action panel -->
     <div class="mt-6 bg-white rounded-xl shadow-sm border border-gray-200 p-6" x-show="selectedDay" x-cloak>
         <h3 class="text-sm font-semibold text-gray-700 mb-3">
             <span x-text="selectedDay ? selectedDay.fullDate : ''"></span> — 标记记录
         </h3>
 
-        <!-- Existing records for this day -->
         <div x-show="dayRecords.length > 0" class="mb-4 space-y-2">
             <template x-for="rec in dayRecords" :key="rec.id">
                 <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
@@ -97,7 +107,6 @@
             </template>
         </div>
 
-        <!-- Mark as start date -->
         <div class="border-t pt-4">
             <h4 class="text-xs font-medium text-gray-500 mb-2">标记为月经开始</h4>
             <form action="/record/create" method="POST" class="flex items-end gap-2 mb-3">
@@ -106,7 +115,7 @@
                     <label class="block text-xs text-gray-500 mb-1">人员</label>
                     <select name="person_id" class="border border-gray-300 rounded-lg px-2 py-1 text-sm">
                         {{range .Persons}}
-                        <option value="{{.ID}}">{{$p := .}}{{.Name}}</option>
+                        <option value="{{.ID}}">{{.Name}}</option>
                         {{end}}
                     </select>
                 </div>
@@ -122,7 +131,6 @@
             </form>
         </div>
 
-        <!-- Mark as end date for existing records without end -->
         <div x-show="openRecords.length > 0" class="border-t pt-4 mt-3">
             <h4 class="text-xs font-medium text-gray-500 mb-2">标记为月经结束</h4>
             <template x-for="rec in openRecords" :key="'end-'+rec.id">
@@ -157,30 +165,20 @@ function calendar() {
         calendarDays: [],
 
         init() {
-            const activeIds = this.persons.map(p => p.id);
-            this.activePersons = [...activeIds];
             this.persons.forEach((p, i) => {
                 this.personColors[p.id] = PERSON_COLORS[i % PERSON_COLORS.length];
             });
+            this.activePersons = this.persons.map(p => p.id);
             this.loadData();
         },
 
-        getColor(pid) {
-            return this.personColors[pid] || '#9ca3af';
-        },
-
-        getPersonName(pid) {
-            const p = this.persons.find(x => x.id === pid);
-            return p ? p.name : '';
-        },
+        getColor(pid) { return this.personColors[pid] || '#9ca3af'; },
+        getPersonName(pid) { const p = this.persons.find(x => x.id === pid); return p ? p.name : ''; },
 
         togglePerson(pid) {
             const idx = this.activePersons.indexOf(pid);
-            if (idx >= 0) {
-                this.activePersons.splice(idx, 1);
-            } else {
-                this.activePersons.push(pid);
-            }
+            if (idx >= 0) this.activePersons.splice(idx, 1);
+            else this.activePersons.push(pid);
             this.loadData();
         },
 
@@ -192,81 +190,59 @@ function calendar() {
                 this.ovulations = (data.ovulations || []).filter(o => this.activePersons.includes(o.person_id));
                 this.records = (data.records || []).sort((a, b) => b.start_date.localeCompare(a.start_date));
                 this.buildCalendar();
-            } catch(e) {
-                console.error('Load failed:', e);
-            }
+            } catch(e) { console.error(e); }
         },
 
         buildCalendar() {
             const firstDay = new Date(this.year, this.month - 1, 1);
-            const lastDay = new Date(this.year, this.month, 0);
-            const startDayOfWeek = firstDay.getDay();
-            const daysInMonth = lastDay.getDate();
+            const daysInMonth = new Date(this.year, this.month, 0).getDate();
+            const startDow = firstDay.getDay();
             const today = new Date();
-            const todayStr = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0');
+            const todayStr = fmt(today);
             const days = [];
 
-            const prevMonthLast = new Date(this.year, this.month - 1, 0).getDate();
-            for (let i = startDayOfWeek - 1; i >= 0; i--) {
-                const d = prevMonthLast - i;
-                const m = this.month === 1 ? 12 : this.month - 1;
-                const y = this.month === 1 ? this.year - 1 : this.year;
-                days.push(this.makeDay(d, y + '-' + String(m).padStart(2,'0') + '-' + String(d).padStart(2,'0'), false, todayStr));
+            const prevLast = new Date(this.year, this.month - 1, 0).getDate();
+            for (let i = startDow - 1; i >= 0; i--) {
+                const d = prevLast - i;
+                const [y, m] = this.month === 1 ? [this.year-1, 12] : [this.year, this.month-1];
+                days.push(this.makeDay(d, y+'-'+pad(m)+'-'+pad(d), false, todayStr));
             }
             for (let d = 1; d <= daysInMonth; d++) {
-                days.push(this.makeDay(d, this.year + '-' + String(this.month).padStart(2,'0') + '-' + String(d).padStart(2,'0'), true, todayStr));
+                days.push(this.makeDay(d, this.year+'-'+pad(this.month)+'-'+pad(d), true, todayStr));
             }
-            const remaining = 42 - days.length;
-            for (let d = 1; d <= remaining; d++) {
-                const m = this.month === 12 ? 1 : this.month + 1;
-                const y = this.month === 12 ? this.year + 1 : this.year;
-                days.push(this.makeDay(d, y + '-' + String(m).padStart(2,'0') + '-' + String(d).padStart(2,'0'), false, todayStr));
+            const rem = 42 - days.length;
+            for (let d = 1; d <= rem; d++) {
+                const [y, m] = this.month === 12 ? [this.year+1, 1] : [this.year, this.month+1];
+                days.push(this.makeDay(d, y+'-'+pad(m)+'-'+pad(d), false, todayStr));
             }
             this.calendarDays = days;
         },
 
         makeDay(date, fullDate, inMonth, todayStr) {
-            const personPeriods = [];
-            const personPredicted = [];
-            const personOvulation = [];
+            const bars = [];
+            const ovulationPids = [];
 
             this.periods.forEach(p => {
                 if (fullDate >= p.start && fullDate <= p.end) {
-                    if (p.type === 'period' && !personPeriods.includes(p.person_id)) personPeriods.push(p.person_id);
-                    if (p.type === 'predicted_period' && !personPredicted.includes(p.person_id)) personPredicted.push(p.person_id);
+                    const pos = barPosition(fullDate, p.start, p.end);
+                    bars.push({ pid: p.person_id, kind: p.type === 'period' ? 'actual' : 'predicted', pos });
                 }
             });
             this.ovulations.forEach(o => {
-                if (fullDate >= o.start && fullDate <= o.end) {
-                    if (o.type === 'ovulation_day' && !personOvulation.includes(o.person_id)) personOvulation.push(o.person_id);
+                if (fullDate === o.start && o.type === 'ovulation_day') {
+                    ovulationPids.push(o.person_id);
                 }
             });
 
-            return { key: fullDate, date, fullDate, inMonth, isToday: fullDate === todayStr, personPeriods, personPredicted, personOvulation };
+            return { key: fullDate, date, fullDate, inMonth, isToday: fullDate === todayStr, bars, ovulationPids };
         },
 
-        dayClasses(day) {
-            if (day.personPeriods.length > 0) return 'border-gray-300';
-            if (day.personPredicted.length > 0) return 'border-gray-200 border-dashed';
-            if (day.personOvulation.length > 0) return 'bg-green-50 border-green-200';
-            if (day.isToday) return 'border-pink-500 border-2';
-            return 'border-gray-100 hover:bg-gray-50';
-        },
-
-        selectDay(day) {
-            if (day.inMonth) {
-                this.selectedDay = day;
-            }
-        },
+        selectDay(day) { if (day.inMonth) this.selectedDay = day; },
 
         get dayRecords() {
             if (!this.selectedDay) return [];
-            return this.records.filter(r => {
-                if (r.start_date === this.selectedDay.fullDate) return true;
-                if (r.end_date && r.end_date === this.selectedDay.fullDate) return true;
-                if (!r.end_date && r.start_date < this.selectedDay.fullDate) return true;
-                return false;
-            });
+            const d = this.selectedDay.fullDate;
+            return this.records.filter(r => r.start_date === d || r.end_date === d || (!r.end_date && r.start_date < d));
         },
 
         get openRecords() {
@@ -274,18 +250,19 @@ function calendar() {
             return this.records.filter(r => !r.end_date && r.start_date < this.selectedDay.fullDate);
         },
 
-        prevMonth() {
-            if (this.month === 1) { this.month = 12; this.year--; }
-            else { this.month--; }
-            this.loadData();
-        },
-
-        nextMonth() {
-            if (this.month === 12) { this.month = 1; this.year++; }
-            else { this.month++; }
-            this.loadData();
-        }
+        prevMonth() { if (this.month===1){this.month=12;this.year--}else{this.month--} this.loadData(); },
+        nextMonth() { if (this.month===12){this.month=1;this.year++}else{this.month++} this.loadData(); }
     }
+}
+
+function fmt(d) { return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
+function pad(n) { return String(n).padStart(2,'0'); }
+
+function barPosition(date, start, end) {
+    if (date === start && date === end) return 'single';
+    if (date === start) return 'start';
+    if (date === end) return 'end';
+    return 'mid';
 }
 </script>
 {{end}}
