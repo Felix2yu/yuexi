@@ -1,0 +1,17 @@
+# Binary
+yuexi
+*.exe
+
+# Data directory
+data/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# MiMoCode
+.mimocode/

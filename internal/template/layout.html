@@ -1,0 +1,28 @@
+{{define "layout"}}<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>月汐 - 月经记录</title>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        [x-cloak] { display: none !important; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <nav class="bg-white shadow-sm border-b border-gray-200">
+        <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
+            <a href="/" class="text-xl font-bold text-pink-600">月汐</a>
+            <div class="flex items-center gap-4">
+                <a href="/" class="text-gray-600 hover:text-pink-600 text-sm">日历</a>
+                <a href="/person" class="text-gray-600 hover:text-pink-600 text-sm">人员管理</a>
+                <a href="/export" class="text-gray-600 hover:text-pink-600 text-sm">导入/导出</a>
+            </div>
+        </div>
+    </nav>
+    <main class="max-w-5xl mx-auto px-4 py-6">
+        {{template "content" .}}
+    </main>
+</body>
+</html>{{end}}
