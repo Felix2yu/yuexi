@@ -64,6 +64,67 @@
         </div>
     </div>
 
+    <!-- Notification settings -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
+        <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">通知提醒</h2>
+
+        <label class="flex items-center gap-3 cursor-pointer mb-4">
+            <input type="checkbox" x-model="notifyEnabled" @change="saveNotify()" class="w-4 h-4 rounded text-pink-600 focus:ring-pink-500">
+            <div>
+                <div class="text-sm font-medium text-gray-800 dark:text-gray-200">启用通知</div>
+                <div class="text-xs text-gray-500 dark:text-gray-400">在月经到来前发送提醒</div>
+            </div>
+        </label>
+
+        <div x-show="notifyEnabled" x-cloak class="space-y-4">
+            <div>
+                <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Shoutrrr 通知地址</label>
+                <input type="text" x-model="notifyURL" @blur="saveNotify()"
+                    class="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg px-3 py-1.5 text-sm w-full focus:ring-2 focus:ring-pink-500 font-mono"
+                    placeholder="如 telegram://token@telegram?chats=chat_id">
+                <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                    支持 Telegram、Discord、Slack、邮件等，参考
+                    <a href="https://containrrr.dev/shoutrrr/0.8/overview/" target="_blank" class="text-pink-500 hover:underline">Shoutrrr 文档</a>
+                </p>
+            </div>
+
+            <div>
+                <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">提前提醒天数</label>
+                <input type="number" x-model.number="notifyDaysBefore" @change="saveNotify()"
+                    min="1" max="14"
+                    class="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg px-3 py-1.5 text-sm w-24 focus:ring-2 focus:ring-pink-500">
+                <span class="text-xs text-gray-500 dark:text-gray-400 ml-2">天</span>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <button type="button" @click="testNotify()"
+                    class="bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 px-3 py-1.5 rounded-lg text-sm hover:bg-gray-300 dark:hover:bg-gray-500 transition disabled:opacity-50"
+                    :disabled="notifyTesting"
+                    x-text="notifyTesting ? '发送中...' : '测试通知'">
+                </button>
+                <span x-show="notifyTestResult" class="text-sm"
+                      :class="notifyTestOk ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'"
+                      x-text="notifyTestResult"></span>
+            </div>
+
+            <!-- Upcoming periods -->
+            <div x-show="upcoming.length > 0" class="border-t border-gray-200 dark:border-gray-600 pt-4 mt-4">
+                <h3 class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">近期预测</h3>
+                <div class="space-y-1">
+                    <template x-for="u in upcoming" :key="u.name">
+                        <div class="flex items-center justify-between text-sm">
+                            <span class="text-gray-700 dark:text-gray-300" x-text="u.name"></span>
+                            <span class="text-gray-500 dark:text-gray-400">
+                                <span x-text="u.next_period"></span>
+                                <span class="text-xs" x-text="u.days_left === 0 ? '（今天）' : u.days_left > 0 ? '（' + u.days_left + '天后）' : ''"></span>
+                            </span>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <a href="/" class="text-sm text-pink-600 dark:text-pink-400 hover:text-pink-800 dark:hover:text-pink-300">返回日历</a>
 </div>
 
@@ -82,13 +143,32 @@ function settings() {
             { value: 'light', label: '亮色', icon: '☀️' },
             { value: 'dark', label: '暗色', icon: '🌙' }
         ],
+        notifyEnabled: false,
+        notifyURL: '',
+        notifyDaysBefore: 3,
+        notifyTesting: false,
+        notifyTestResult: '',
+        notifyTestOk: false,
+        upcoming: [],
 
-        init() {
+        async init() {
             const s = loadSettings();
             this.showOvulation = s.showOvulation !== false;
             this.familyMode = s.familyMode === true;
             this.theme = s.theme || 'system';
             this.personColors = (s.personColors) ? {...s.personColors} : {};
+
+            // Load notification config from server
+            try {
+                const resp = await fetch('/api/notification/status');
+                const data = await resp.json();
+                if (data.config) {
+                    this.notifyEnabled = data.config.enabled;
+                    this.notifyURL = data.config.shoutrrr_url || '';
+                    this.notifyDaysBefore = data.config.days_before || 3;
+                }
+                this.upcoming = data.upcoming || [];
+            } catch(e) {}
         },
 
         setTheme(t) {
@@ -114,10 +194,42 @@ function settings() {
                 theme: this.theme,
                 personColors: this.personColors
             });
-            // Toggle family-only nav items
             document.querySelectorAll('.nav-family-only').forEach(el => {
                 el.style.display = this.familyMode ? '' : 'none';
             });
+        },
+
+        async saveNotify() {
+            try {
+                await fetch('/api/notification', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        enabled: this.notifyEnabled,
+                        shoutrrr_url: this.notifyURL,
+                        days_before: this.notifyDaysBefore
+                    })
+                });
+            } catch(e) {}
+        },
+
+        async testNotify() {
+            this.notifyTesting = true;
+            this.notifyTestResult = '';
+            try {
+                const resp = await fetch('/api/notification/test', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: 'url=' + encodeURIComponent(this.notifyURL)
+                });
+                const data = await resp.json();
+                this.notifyTestOk = resp.ok;
+                this.notifyTestResult = resp.ok ? '发送成功' : (data.error || '发送失败');
+            } catch(e) {
+                this.notifyTestOk = false;
+                this.notifyTestResult = '请求失败';
+            }
+            this.notifyTesting = false;
         }
     }
 }

@@ -190,3 +190,44 @@ func getRecord(id int64) (*Record, error) {
 	}
 	return &r, nil
 }
+
+// Notification Config
+
+type NotificationConfig struct {
+	Enabled      bool   `json:"enabled"`
+	ShoutrrrURL  string `json:"shoutrrr_url"`
+	DaysBefore   int    `json:"days_before"`
+	LastNotified string `json:"last_notified"`
+}
+
+func GetNotificationConfig() NotificationConfig {
+	var cfg NotificationConfig
+	var enabled int
+	var daysBefore int
+	err := DB.QueryRow("SELECT enabled, shoutrrr_url, days_before, COALESCE(last_notified, '') FROM notification_config WHERE id = 1").
+		Scan(&enabled, &cfg.ShoutrrrURL, &daysBefore, &cfg.LastNotified)
+	if err != nil {
+		return NotificationConfig{DaysBefore: 3}
+	}
+	cfg.Enabled = enabled == 1
+	cfg.DaysBefore = daysBefore
+	return cfg
+}
+
+func SaveNotificationConfig(cfg NotificationConfig) error {
+	enabled := 0
+	if cfg.Enabled {
+		enabled = 1
+	}
+	_, err := DB.Exec(`INSERT INTO notification_config (id, enabled, shoutrrr_url, days_before, last_notified)
+		VALUES (1, ?, ?, ?, ?)
+		ON CONFLICT(id) DO UPDATE SET enabled=?, shoutrrr_url=?, days_before=?, last_notified=?`,
+		enabled, cfg.ShoutrrrURL, cfg.DaysBefore, cfg.LastNotified,
+		enabled, cfg.ShoutrrrURL, cfg.DaysBefore, cfg.LastNotified)
+	return err
+}
+
+func UpdateNotificationLastNotified(date string) error {
+	_, err := DB.Exec("UPDATE notification_config SET last_notified = ? WHERE id = 1", date)
+	return err
+}

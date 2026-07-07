@@ -6,6 +6,7 @@ import (
 	"os"
 	"yuexi/internal/db"
 	"yuexi/internal/handler"
+	"yuexi/internal/service"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -53,12 +54,22 @@ func main() {
 	r.Get("/export/download", handler.ExportDownload)
 	r.Post("/import", handler.ImportHandler)
 
+	// Notification
+	r.Get("/api/notification", handler.NotificationConfigAPI)
+	r.Post("/api/notification", handler.NotificationConfigAPI)
+	r.Post("/api/notification/test", handler.NotificationTest)
+	r.Get("/api/notification/status", handler.NotificationStatus)
+
 	// PWA static files
 	r.Get("/manifest.json", handler.ServeManifest)
 	r.Get("/sw.js", handler.ServeSW)
 	r.Get("/icon-192.png", func(w http.ResponseWriter, r *http.Request) { handler.ServeIcon(w, r, 192) })
 	r.Get("/icon-512.png", func(w http.ResponseWriter, r *http.Request) { handler.ServeIcon(w, r, 512) })
 	r.Get("/favicon.ico", func(w http.ResponseWriter, r *http.Request) { handler.ServeIcon(w, r, 32) })
+
+	// Start notification checker
+	service.StartNotificationChecker()
+	defer service.StopNotificationChecker()
 
 	log.Printf("月汐启动在 http://localhost:%s", port)
 	if err := http.ListenAndServe(":"+port, r); err != nil {

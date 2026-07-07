@@ -50,6 +50,13 @@ func migrate() {
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_records_person_id ON records(person_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_records_start_date ON records(start_date)`,
+		`CREATE TABLE IF NOT EXISTS notification_config (
+			id INTEGER PRIMARY KEY CHECK (id = 1),
+			enabled INTEGER NOT NULL DEFAULT 0,
+			shoutrrr_url TEXT NOT NULL DEFAULT '',
+			days_before INTEGER NOT NULL DEFAULT 3,
+			last_notified TEXT DEFAULT ''
+		)`,
 	}
 
 	for _, q := range queries {
