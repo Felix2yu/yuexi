@@ -1,12 +1,6 @@
 package handler
 
-import (
-	"embed"
-	"html/template"
-)
-
-//go:embed template/*.html
-var templateFS embed.FS
+import "html/template"
 
 func parseTemplates(names ...string) (*template.Template, error) {
 	tmpl := template.New("")

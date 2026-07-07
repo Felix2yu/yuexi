@@ -2,15 +2,28 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>月汐 - 月经记录</title>
+    <meta name="description" content="月经记录与周期预测">
+    <meta name="theme-color" content="#ec4899">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="月汐">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="icon" href="/favicon.ico" type="image/png">
+    <link rel="apple-touch-icon" href="/icon-192.png">
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         [x-cloak] { display: none !important; }
     </style>
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js').catch(() => {});
+        }
+    </script>
 </head>
-<body class="bg-gray-50 min-h-screen">
+<body class="bg-gray-50 min-h-screen" style="padding-top: env(safe-area-inset-top)">
     <nav class="bg-white shadow-sm border-b border-gray-200">
         <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
             <a href="/" class="text-xl font-bold text-pink-600">月汐</a>

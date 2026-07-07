@@ -53,6 +53,13 @@ func main() {
 	r.Get("/export/download", handler.ExportDownload)
 	r.Post("/import", handler.ImportHandler)
 
+	// PWA static files
+	r.Get("/manifest.json", handler.ServeManifest)
+	r.Get("/sw.js", handler.ServeSW)
+	r.Get("/icon-192.png", func(w http.ResponseWriter, r *http.Request) { handler.ServeIcon(w, r, 192) })
+	r.Get("/icon-512.png", func(w http.ResponseWriter, r *http.Request) { handler.ServeIcon(w, r, 512) })
+	r.Get("/favicon.ico", func(w http.ResponseWriter, r *http.Request) { handler.ServeIcon(w, r, 32) })
+
 	log.Printf("月汐启动在 http://localhost:%s", port)
 	if err := http.ListenAndServe(":"+port, r); err != nil {
 		log.Fatal(err)
