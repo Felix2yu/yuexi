@@ -12,9 +12,12 @@ func CalculateMonthData(person db.Person, records []db.Record, year, month int) 
 	startOfMonth := time.Date(year, time.Month(month), 1, 0, 0, 0, 0, time.Local)
 	endOfMonth := startOfMonth.AddDate(0, 1, -1)
 
+	// Sort records by date
+	sorted := SortRecordsByDate(records)
+
 	// First, collect all actual periods in this month
 	var actualPeriodsInMonth []db.DateRange
-	for _, rec := range records {
+	for _, rec := range sorted {
 		recStart, err := time.Parse("2006-01-02", rec.StartDate)
 		if err != nil {
 			continue
@@ -42,69 +45,67 @@ func CalculateMonthData(person db.Person, records []db.Record, year, month int) 
 	// Add all actual periods
 	periods = append(periods, actualPeriodsInMonth...)
 
-	// Now calculate predicted periods, but skip if there's already an actual period in the same cycle
-	for _, rec := range records {
-		recStart, err := time.Parse("2006-01-02", rec.StartDate)
-		if err != nil {
-			continue
-		}
+	// Only predict from the most recent record to avoid duplicate predictions
+	if len(sorted) > 0 {
+		latestRec := sorted[len(sorted)-1]
+		latestStart, err := time.Parse("2006-01-02", latestRec.StartDate)
+		if err == nil {
+			// Generate predictions for up to 6 cycles ahead from the latest record
+			for i := 1; i <= 6; i++ {
+				nextPeriodStart := latestStart.AddDate(0, 0, person.CycleLength*i)
+				nextPeriodEnd := nextPeriodStart.AddDate(0, 0, person.PeriodLength-1)
 
-		// Predicted next periods and ovulation for up to 6 cycles ahead
-		for i := 1; i <= 6; i++ {
-			nextPeriodStart := recStart.AddDate(0, 0, person.CycleLength*i)
-			nextPeriodEnd := nextPeriodStart.AddDate(0, 0, person.PeriodLength-1)
-
-			// Check if there's already an actual period that overlaps with this predicted period
-			hasActualOverlap := false
-			for _, actual := range actualPeriodsInMonth {
-				actualStart, _ := time.Parse("2006-01-02", actual.Start)
-				actualEnd, _ := time.Parse("2006-01-02", actual.End)
-				// If the predicted period overlaps with an actual period, skip it
-				if rangesOverlap(nextPeriodStart, nextPeriodEnd, actualStart, actualEnd) {
-					hasActualOverlap = true
-					break
+				// Check if there's already an actual period that overlaps with this predicted period
+				hasActualOverlap := false
+				for _, actual := range actualPeriodsInMonth {
+					actualStart, _ := time.Parse("2006-01-02", actual.Start)
+					actualEnd, _ := time.Parse("2006-01-02", actual.End)
+					// If the predicted period overlaps with an actual period, skip it
+					if rangesOverlap(nextPeriodStart, nextPeriodEnd, actualStart, actualEnd) {
+						hasActualOverlap = true
+						break
+					}
+					// Also skip if the actual period is within a reasonable range (e.g., 7 days) of the predicted period
+					diff := nextPeriodStart.Sub(actualStart).Hours() / 24
+					if diff >= -7 && diff <= 7 {
+						hasActualOverlap = true
+						break
+					}
 				}
-				// Also skip if the actual period is within a reasonable range (e.g., 7 days) of the predicted period
-				// This handles the case where the period came a few days early
-				diff := nextPeriodStart.Sub(actualStart).Hours() / 24
-				if diff >= -7 && diff <= 7 {
-					hasActualOverlap = true
-					break
+
+				if hasActualOverlap {
+					continue
 				}
-			}
 
-			if hasActualOverlap {
-				continue
-			}
+				if rangesOverlap(nextPeriodStart, nextPeriodEnd, startOfMonth, endOfMonth) {
+					periods = append(periods, db.DateRange{
+						Start:    nextPeriodStart.Format("2006-01-02"),
+						End:      nextPeriodEnd.Format("2006-01-02"),
+						Type:     "predicted_period",
+						PersonID: person.ID,
+					})
+				}
 
-			if rangesOverlap(nextPeriodStart, nextPeriodEnd, startOfMonth, endOfMonth) {
-				periods = append(periods, db.DateRange{
-					Start:    nextPeriodStart.Format("2006-01-02"),
-					End:      nextPeriodEnd.Format("2006-01-02"),
-					Type:     "predicted_period",
-					PersonID: person.ID,
-				})
-			}
+				ovulationDay := nextPeriodStart.AddDate(0, 0, -14)
+				ovulationStart := ovulationDay.AddDate(0, 0, -5)
+				ovulationEnd := ovulationDay.AddDate(0, 0, 1)
 
-			ovulationDay := nextPeriodStart.AddDate(0, 0, -14)
-			ovulationStart := ovulationDay.AddDate(0, 0, -5)
-			ovulationEnd := ovulationDay.AddDate(0, 0, 1)
-
-			if rangesOverlap(ovulationStart, ovulationEnd, startOfMonth, endOfMonth) {
-				ovulations = append(ovulations, db.DateRange{
-					Start:    ovulationStart.Format("2006-01-02"),
-					End:      ovulationEnd.Format("2006-01-02"),
-					Type:     "ovulation_window",
-					PersonID: person.ID,
-				})
-			}
-			if ovulationDay.After(startOfMonth.AddDate(0, 0, -1)) && ovulationDay.Before(endOfMonth.AddDate(0, 0, 1)) {
-				ovulations = append(ovulations, db.DateRange{
-					Start:    ovulationDay.Format("2006-01-02"),
-					End:      ovulationDay.Format("2006-01-02"),
-					Type:     "ovulation_day",
-					PersonID: person.ID,
-				})
+				if rangesOverlap(ovulationStart, ovulationEnd, startOfMonth, endOfMonth) {
+					ovulations = append(ovulations, db.DateRange{
+						Start:    ovulationStart.Format("2006-01-02"),
+						End:      ovulationEnd.Format("2006-01-02"),
+						Type:     "ovulation_window",
+						PersonID: person.ID,
+					})
+				}
+				if ovulationDay.After(startOfMonth.AddDate(0, 0, -1)) && ovulationDay.Before(endOfMonth.AddDate(0, 0, 1)) {
+					ovulations = append(ovulations, db.DateRange{
+						Start:    ovulationDay.Format("2006-01-02"),
+						End:      ovulationDay.Format("2006-01-02"),
+						Type:     "ovulation_day",
+						PersonID: person.ID,
+					})
+				}
 			}
 		}
 	}

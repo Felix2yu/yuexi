@@ -392,7 +392,11 @@ function calendar() {
         get dayRecords() {
             if (!this.selectedDay) return [];
             const d = this.selectedDay.fullDate;
-            return this.records.filter(r => r.start_date === d || r.end_date === d || (!r.end_date && r.start_date < d));
+            return this.records.filter(r => {
+                const start = r.start_date;
+                const end = r.end_date || r.start_date;
+                return start <= d && end >= d;
+            });
         },
 
         get openRecords() {
