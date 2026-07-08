@@ -26,6 +26,14 @@ func RecordAPI(w http.ResponseWriter, r *http.Request) {
 
 	var allPeriods, allOvulations []db.DateRange
 
+	// Build a map of person_id to period_length for calculating effective end dates
+	personMap := make(map[int64]db.Person)
+	for _, p := range persons {
+		if p.UserID == userID {
+			personMap[p.ID] = p
+		}
+	}
+
 	for _, p := range persons {
 		if p.UserID != userID {
 			continue
@@ -41,10 +49,44 @@ func RecordAPI(w http.ResponseWriter, r *http.Request) {
 		allOvulations = append(allOvulations, ovulations...)
 	}
 
+	// Add effective_end_date to each record (actual end_date or calculated from period_length)
+	type RecordWithEndDate struct {
+		ID               int64   `json:"id"`
+		PersonID         int64   `json:"person_id"`
+		StartDate        string  `json:"start_date"`
+		EndDate          *string `json:"end_date"`
+		EffectiveEndDate string  `json:"effective_end_date"`
+		Note             string  `json:"note"`
+		CreatedAt        string  `json:"created_at"`
+	}
+
+	var recordsWithEnd []RecordWithEndDate
+	for _, rec := range allRecords {
+		effectiveEnd := rec.StartDate
+		if rec.EndDate != nil && *rec.EndDate != "" {
+			effectiveEnd = *rec.EndDate
+		} else if p, ok := personMap[rec.PersonID]; ok {
+			start, err := time.Parse("2006-01-02", rec.StartDate)
+			if err == nil {
+				end := start.AddDate(0, 0, p.PeriodLength-1)
+				effectiveEnd = end.Format("2006-01-02")
+			}
+		}
+		recordsWithEnd = append(recordsWithEnd, RecordWithEndDate{
+			ID:               rec.ID,
+			PersonID:         rec.PersonID,
+			StartDate:        rec.StartDate,
+			EndDate:          rec.EndDate,
+			EffectiveEndDate: effectiveEnd,
+			Note:             rec.Note,
+			CreatedAt:        rec.CreatedAt,
+		})
+	}
+
 	result := map[string]interface{}{
 		"periods":    allPeriods,
 		"ovulations": allOvulations,
-		"records":    allRecords,
+		"records":    recordsWithEnd,
 		"persons":    persons,
 	}
 

@@ -394,7 +394,7 @@ function calendar() {
             const d = this.selectedDay.fullDate;
             return this.records.filter(r => {
                 const start = r.start_date;
-                const end = r.end_date || r.start_date;
+                const end = r.effective_end_date || r.end_date || r.start_date;
                 return start <= d && end >= d;
             });
         },
