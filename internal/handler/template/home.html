@@ -104,15 +104,14 @@
 
         <!-- Mark period start -->
         <div class="border-t border-gray-200 dark:border-gray-600 pt-3 mb-3">
-            <div class="flex items-end gap-1.5">
+            <div class="flex items-center gap-1.5">
                 <div x-show="familyMode">
                     <select x-model="selectedPersonId" class="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg px-2 py-1 text-xs">
                         {{range .Persons}}<option value="{{.ID}}">{{.Name}}</option>{{end}}
                     </select>
                 </div>
                 <input x-show="!familyMode" type="hidden" x-model="selectedPersonId" value="{{(index .Persons 0).ID}}">
-                <input type="date" x-model="newEndDate" class="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg px-2 py-1 text-xs flex-1" placeholder="结束">
-                <input type="text" x-model="newNote" class="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg px-2 py-1 text-xs w-16" placeholder="备注">
+                <input type="text" x-model="newNote" class="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg px-2 py-1 text-xs flex-1" placeholder="备注（可选）">
                 <button type="button" @click="createRecord()" class="bg-pink-600 text-white px-2 py-1 rounded-lg text-xs hover:bg-pink-700 shrink-0">开始</button>
             </div>
         </div>
@@ -207,7 +206,6 @@ function calendar() {
         flowLevels: { 1: '少', 2: '中', 3: '多' },
         symptomOptions: ['痛经', '头痛', '腰酸', '腹胀', '疲劳', '情绪波动', '乳房胀痛', '恶心', '失眠', '食欲变化'],
         selectedPersonId: {{(index .Persons 0).ID}},
-        newEndDate: '',
         newNote: '',
 
         init() {
@@ -345,7 +343,6 @@ function calendar() {
             const formData = new URLSearchParams();
             formData.append('start_date', this.selectedDay.fullDate);
             formData.append('person_id', this.selectedPersonId);
-            if (this.newEndDate) formData.append('end_date', this.newEndDate);
             if (this.newNote) formData.append('note', this.newNote);
             try {
                 await fetch('/record/create', {
@@ -354,7 +351,6 @@ function calendar() {
                     body: formData.toString()
                 });
                 await this.loadData();
-                this.newEndDate = '';
                 this.newNote = '';
             } catch(e) {}
         },
