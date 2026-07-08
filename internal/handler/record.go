@@ -22,7 +22,7 @@ func RecordAPI(w http.ResponseWriter, r *http.Request) {
 	}
 
 	persons, _ := db.GetPersonsByUser(userID)
-	allRecords, _ := db.GetAllRecords()
+	allRecords, _ := db.GetRecordsByUser(userID)
 
 	var allPeriods, allOvulations []db.DateRange
 

@@ -37,7 +37,7 @@ func StatsAPI(w http.ResponseWriter, r *http.Request) {
 	userID := GetUserID(r)
 
 	persons, _ := db.GetPersonsByUser(userID)
-	allRecords, _ := db.GetAllRecords()
+	allRecords, _ := db.GetRecordsByUser(userID)
 
 	result := make(map[int64]db.CycleStats)
 

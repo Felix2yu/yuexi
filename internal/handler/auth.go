@@ -6,6 +6,7 @@ import (
 	"html/template"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 	"yuexi/internal/db"
 
@@ -23,6 +24,62 @@ func init() {
 			db.DeleteExpiredSessions()
 		}
 	}()
+}
+
+// Login rate limiting
+type loginAttempt struct {
+	count    int
+	lastTry  time.Time
+	blockedUntil time.Time
+}
+
+var (
+	loginAttempts = make(map[string]*loginAttempt)
+	loginMu       sync.Mutex
+)
+
+func checkLoginRateLimit(ip string) (allowed bool, retryAfter int) {
+	loginMu.Lock()
+	defer loginMu.Unlock()
+
+	now := time.Now()
+	attempt, exists := loginAttempts[ip]
+
+	if !exists {
+		loginAttempts[ip] = &loginAttempt{count: 1, lastTry: now}
+		return true, 0
+	}
+
+	// If blocked, check if block period has expired
+	if !attempt.blockedUntil.IsZero() && now.Before(attempt.blockedUntil) {
+		retry := int(attempt.blockedUntil.Sub(now).Seconds()) + 1
+		return false, retry
+	}
+
+	// Reset if last attempt was more than 15 minutes ago
+	if now.Sub(attempt.lastTry) > 15*time.Minute {
+		attempt.count = 1
+		attempt.lastTry = now
+		attempt.blockedUntil = time.Time{}
+		return true, 0
+	}
+
+	attempt.count++
+	attempt.lastTry = now
+
+	// Block after 5 failed attempts
+	if attempt.count >= 5 {
+		attempt.blockedUntil = now.Add(15 * time.Minute)
+		return false, 900
+	}
+
+	return true, 0
+}
+
+func resetLoginAttempts(ip string) {
+	loginMu.Lock()
+	defer loginMu.Unlock()
+	delete(loginAttempts, ip)
 }
 
 func createSession(userID int64, username string) string {
@@ -105,6 +162,17 @@ func LoginPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	ip := r.RemoteAddr
+	if forwarded := r.Header.Get("X-Forwarded-For"); forwarded != "" {
+		ip = strings.Split(forwarded, ",")[0]
+	}
+
+	allowed, _ := checkLoginRateLimit(ip)
+	if !allowed {
+		http.Redirect(w, r, "/login?error=登录尝试过多，请稍后再试", http.StatusSeeOther)
+		return
+	}
+
 	username := strings.TrimSpace(r.FormValue("username"))
 	password := r.FormValue("password")
 
@@ -123,6 +191,8 @@ func LoginPost(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/login?error=用户名或密码错误", http.StatusSeeOther)
 		return
 	}
+
+	resetLoginAttempts(ip)
 
 	token := createSession(user.ID, user.Username)
 	http.SetCookie(w, &http.Cookie{
@@ -157,8 +227,8 @@ func RegisterPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if len(password) < 4 {
-		http.Redirect(w, r, "/register?error=密码至少4个字符", http.StatusSeeOther)
+	if len(password) < 8 {
+		http.Redirect(w, r, "/register?error=密码至少8个字符", http.StatusSeeOther)
 		return
 	}
 
@@ -246,8 +316,8 @@ func PasswordPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if len(newPassword) < 4 {
-		http.Redirect(w, r, "/settings/password?error=新密码至少4个字符", http.StatusSeeOther)
+	if len(newPassword) < 8 {
+		http.Redirect(w, r, "/settings/password?error=新密码至少8个字符", http.StatusSeeOther)
 		return
 	}
 
@@ -277,6 +347,24 @@ func PasswordPost(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/settings/password?error=修改失败", http.StatusSeeOther)
 		return
 	}
+
+	// Clear all other sessions for this user for security
+	db.DeleteUserSessions(userID)
+
+	// Re-create current session
+	cookie, _ := r.Cookie("session")
+	if cookie != nil {
+		db.DeleteSession(cookie.Value)
+	}
+	token := createSession(userID, user.Username)
+	http.SetCookie(w, &http.Cookie{
+		Name:     "session",
+		Value:    token,
+		Path:     "/",
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+		MaxAge:   86400 * 30,
+	})
 
 	http.Redirect(w, r, "/settings/password?success=密码修改成功", http.StatusSeeOther)
 }

@@ -201,6 +201,35 @@ func GetAllRecords() ([]Record, error) {
 	return records, nil
 }
 
+func GetRecordsByUser(userID int64) ([]Record, error) {
+	rows, err := DB.Query(`SELECT r.id, r.person_id, r.start_date, r.end_date, COALESCE(r.note, ''), COALESCE(r.created_at, '')
+		FROM records r
+		JOIN persons p ON r.person_id = p.id
+		WHERE p.user_id = ?
+		ORDER BY r.start_date DESC`, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	records := make([]Record, 0)
+	for rows.Next() {
+		var r Record
+		var endDate sql.NullString
+		if err := rows.Scan(&r.ID, &r.PersonID, &r.StartDate, &endDate, &r.Note, &r.CreatedAt); err != nil {
+			return nil, err
+		}
+		r.StartDate = normalizeDate(r.StartDate)
+		r.CreatedAt = normalizeDate(r.CreatedAt)
+		if endDate.Valid {
+			s := normalizeDate(endDate.String)
+			r.EndDate = &s
+		}
+		records = append(records, r)
+	}
+	return records, nil
+}
+
 // Record CRUD
 
 func GetRecordsByPerson(personID int64) ([]Record, error) {

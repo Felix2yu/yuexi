@@ -7,7 +7,18 @@ import (
 )
 
 func ExportPage(w http.ResponseWriter, r *http.Request) {
-	http.Redirect(w, r, "/", http.StatusSeeOther)
+	data := injectUser(r, map[string]interface{}{
+		"Success": r.URL.Query().Get("success"),
+		"Error":   r.URL.Query().Get("error"),
+	})
+
+	tmpl, err := parseTemplates("layout.html", "export.html")
+	if err != nil {
+		http.Error(w, "Template error: "+err.Error(), 500)
+		return
+	}
+
+	tmpl.ExecuteTemplate(w, "layout", data)
 }
 
 func ExportDownload(w http.ResponseWriter, r *http.Request) {
@@ -39,24 +50,23 @@ func ExportDownload(w http.ResponseWriter, r *http.Request) {
 
 func ImportHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Redirect(w, r, "/", http.StatusSeeOther)
+		http.Redirect(w, r, "/export", http.StatusSeeOther)
 		return
 	}
 
 	file, _, err := r.FormFile("file")
 	if err != nil {
-		http.Redirect(w, r, "/?import_error=1", http.StatusSeeOther)
+		http.Redirect(w, r, "/export?error=导入失败", http.StatusSeeOther)
 		return
 	}
 	defer file.Close()
 
 	userID := GetUserID(r)
-	count, err := service.ImportData(file, userID)
+	_, err = service.ImportData(file, userID)
 	if err != nil {
-		http.Redirect(w, r, "/?import_error=1", http.StatusSeeOther)
+		http.Redirect(w, r, "/export?error=导入失败: "+err.Error(), http.StatusSeeOther)
 		return
 	}
 
-	_ = count
-	http.Redirect(w, r, "/?import_success=1", http.StatusSeeOther)
+	http.Redirect(w, r, "/export?success=导入成功", http.StatusSeeOther)
 }
