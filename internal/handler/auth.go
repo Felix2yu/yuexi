@@ -6,6 +6,7 @@ import (
 	"html/template"
 	"net/http"
 	"strings"
+	"time"
 	"yuexi/internal/db"
 
 	"golang.org/x/crypto/bcrypt"
@@ -15,29 +16,34 @@ var sessionKey = make([]byte, 32)
 
 func init() {
 	rand.Read(sessionKey)
+	// Clean up expired sessions periodically
+	go func() {
+		for {
+			time.Sleep(1 * time.Hour)
+			db.DeleteExpiredSessions()
+		}
+	}()
 }
-
-type Session struct {
-	UserID   int64
-	Username string
-}
-
-var sessions = map[string]*Session{}
 
 func createSession(userID int64, username string) string {
 	b := make([]byte, 32)
 	rand.Read(b)
 	token := hex.EncodeToString(b)
-	sessions[token] = &Session{UserID: userID, Username: username}
+	expiresAt := time.Now().Add(30 * 24 * time.Hour).Format("2006-01-02 15:04:05")
+	db.CreateSession(token, userID, username, expiresAt)
 	return token
 }
 
-func getSession(r *http.Request) *Session {
+func getSession(r *http.Request) *db.SessionData {
 	cookie, err := r.Cookie("session")
 	if err != nil {
 		return nil
 	}
-	return sessions[cookie.Value]
+	sess, err := db.GetSession(cookie.Value)
+	if err != nil || sess == nil {
+		return nil
+	}
+	return sess
 }
 
 func AuthMiddleware(next http.Handler) http.Handler {
@@ -193,7 +199,7 @@ func RegisterPost(w http.ResponseWriter, r *http.Request) {
 func LogoutPost(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie("session")
 	if err == nil {
-		delete(sessions, cookie.Value)
+		db.DeleteSession(cookie.Value)
 	}
 	http.SetCookie(w, &http.Cookie{
 		Name:   "session",

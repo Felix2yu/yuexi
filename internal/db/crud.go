@@ -58,6 +58,51 @@ func UpdateUserPassword(userID int64, passwordHash string) error {
 	return err
 }
 
+// Session CRUD
+
+type SessionData struct {
+	Token    string
+	UserID   int64
+	Username string
+}
+
+func CreateSession(token string, userID int64, username string, expiresAt string) error {
+	_, err := DB.Exec("INSERT INTO sessions (token, user_id, username, expires_at) VALUES (?, ?, ?, ?)",
+		token, userID, username, expiresAt)
+	return err
+}
+
+func GetSession(token string) (*SessionData, error) {
+	var s SessionData
+	var expiresAt string
+	err := DB.QueryRow("SELECT token, user_id, username, expires_at FROM sessions WHERE token = ?", token).
+		Scan(&s.Token, &s.UserID, &s.Username, &expiresAt)
+	if err != nil {
+		return nil, err
+	}
+	// Check if expired
+	if expiresAt < time.Now().Format("2006-01-02 15:04:05") {
+		DB.Exec("DELETE FROM sessions WHERE token = ?", token)
+		return nil, nil
+	}
+	return &s, nil
+}
+
+func DeleteSession(token string) error {
+	_, err := DB.Exec("DELETE FROM sessions WHERE token = ?", token)
+	return err
+}
+
+func DeleteExpiredSessions() error {
+	_, err := DB.Exec("DELETE FROM sessions WHERE expires_at < ?", time.Now().Format("2006-01-02 15:04:05"))
+	return err
+}
+
+func DeleteUserSessions(userID int64) error {
+	_, err := DB.Exec("DELETE FROM sessions WHERE user_id = ?", userID)
+	return err
+}
+
 // Person CRUD
 
 func GetPersonsByUser(userID int64) ([]Person, error) {

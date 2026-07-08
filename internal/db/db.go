@@ -97,6 +97,20 @@ func migrate() {
 	migrateAddColumn("daily_logs", "weight", "REAL")
 	migrateAddColumn("daily_logs", "temperature", "REAL")
 
+	// Migration: sessions table
+	if _, err := DB.Exec(`CREATE TABLE IF NOT EXISTS sessions (
+		token TEXT PRIMARY KEY,
+		user_id INTEGER NOT NULL,
+		username TEXT NOT NULL,
+		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+		expires_at DATETIME NOT NULL,
+		FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+	)`); err != nil {
+		log.Fatalf("Migration failed: %v", err)
+	}
+	_, _ = DB.Exec("CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id)")
+	_, _ = DB.Exec("CREATE INDEX IF NOT EXISTS idx_sessions_expires_at ON sessions(expires_at)")
+
 	// Migrate notification_config from single-row to per-user
 	var count int
 	DB.QueryRow("SELECT COUNT(*) FROM notification_config").Scan(&count)
