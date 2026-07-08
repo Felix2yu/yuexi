@@ -116,20 +116,6 @@
             </div>
         </div>
 
-        <!-- Mark period end -->
-        <div x-show="openRecords.length > 0" class="border-t border-gray-200 dark:border-gray-600 pt-3 mb-3">
-            <template x-for="rec in openRecords" :key="'end-'+rec.id">
-                <div class="flex items-center gap-1.5 mb-1.5">
-                    <input type="hidden" :value="rec.id">
-                    <input type="hidden" :value="rec.start_date">
-                    <input type="hidden" :value="rec.person_id">
-                    <span class="w-2 h-2 rounded-full shrink-0" :style="'background-color:' + getColor(rec.person_id)"></span>
-                    <span class="text-xs text-gray-600 dark:text-gray-400 truncate flex-1" x-text="getPersonName(rec.person_id) + ' ' + rec.start_date"></span>
-                    <button type="button" @click="endRecord(rec)" class="bg-purple-600 text-white px-2 py-0.5 rounded text-xs hover:bg-purple-700 shrink-0">结束</button>
-                </div>
-            </template>
-        </div>
-
         <!-- Daily log -->
         <div class="border-t border-gray-200 dark:border-gray-600 pt-3">
             <div class="mb-2">
@@ -369,22 +355,6 @@ function calendar() {
             } catch(e) {}
         },
 
-        async endRecord(rec) {
-            const formData = new URLSearchParams();
-            formData.append('id', rec.id);
-            formData.append('start_date', rec.start_date);
-            formData.append('person_id', rec.person_id);
-            formData.append('end_date', this.selectedDay ? this.selectedDay.fullDate : '');
-            try {
-                await fetch('/record/edit', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: formData.toString()
-                });
-                await this.loadData();
-            } catch(e) {}
-        },
-
         get dayRecords() {
             if (!this.selectedDay) return [];
             const d = this.selectedDay.fullDate;
@@ -393,11 +363,6 @@ function calendar() {
                 const end = r.effective_end_date || r.end_date || r.start_date;
                 return start <= d && end >= d;
             });
-        },
-
-        get openRecords() {
-            if (!this.selectedDay) return [];
-            return this.records.filter(r => !r.end_date && r.start_date < this.selectedDay.fullDate);
         },
 
         prevMonth() { if (this.month===1){this.month=12;this.year--}else{this.month--} this.loadData(); this.closePopup(); },
