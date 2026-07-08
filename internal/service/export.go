@@ -71,29 +71,69 @@ func ImportData(reader io.Reader, userID int64) (int, error) {
 		allData = []db.ExportData{singleData}
 	}
 
+	// Get existing persons for deduplication
+	existingPersons, _ := db.GetPersonsByUser(userID)
+	personNameMap := make(map[string]*db.Person)
+	for i := range existingPersons {
+		personNameMap[existingPersons[i].Name] = &existingPersons[i]
+	}
+
 	count := 0
 	for _, data := range allData {
 		person := data.Person
-		person.ID = 0
-		newPerson, err := db.CreatePerson(userID, person.Name, person.CycleLength, person.PeriodLength)
-		if err != nil {
-			continue
+
+		// Check if person with same name already exists
+		var targetPerson *db.Person
+		if existing, ok := personNameMap[person.Name]; ok {
+			targetPerson = existing
+		} else {
+			// Create new person
+			newPerson, err := db.CreatePerson(userID, person.Name, person.CycleLength, person.PeriodLength)
+			if err != nil {
+				continue
+			}
+			targetPerson = newPerson
+			personNameMap[person.Name] = newPerson
+		}
+
+		// Get existing records for this person to avoid duplicates
+		existingRecords, _ := db.GetRecordsByPerson(targetPerson.ID)
+		recordKeyMap := make(map[string]bool)
+		for _, rec := range existingRecords {
+			key := rec.StartDate
+			if rec.EndDate != nil && *rec.EndDate != "" {
+				key += "_" + *rec.EndDate
+			}
+			recordKeyMap[key] = true
 		}
 
 		for _, rec := range data.Records {
+			// Create dedup key from start_date and end_date
+			key := rec.StartDate
+			if rec.EndDate != nil && *rec.EndDate != "" {
+				key += "_" + *rec.EndDate
+			}
+
+			// Skip if record already exists
+			if recordKeyMap[key] {
+				continue
+			}
+
 			rec.ID = 0
-			rec.PersonID = newPerson.ID
+			rec.PersonID = targetPerson.ID
 			_, err := db.CreateRecord(rec.PersonID, rec.StartDate, rec.EndDate, rec.Note)
 			if err != nil {
 				continue
 			}
+			recordKeyMap[key] = true
 			count++
 		}
 
+		// Daily logs use upsert, so they won't duplicate
 		for _, log := range data.DailyLogs {
 			log.ID = 0
-			log.PersonID = newPerson.ID
-			db.UpsertDailyLog(newPerson.ID, log.Date, log.FlowLevel, log.Symptoms, log.Note, log.Weight, log.Temperature)
+			log.PersonID = targetPerson.ID
+			db.UpsertDailyLog(log.PersonID, log.Date, log.FlowLevel, log.Symptoms, log.Note, log.Weight, log.Temperature)
 		}
 	}
 
