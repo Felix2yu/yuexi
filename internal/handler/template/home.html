@@ -81,8 +81,7 @@
     <div x-show="showPopup" x-cloak class="popup-overlay" @click="closePopup()"></div>
     <div x-show="showPopup" x-cloak class="day-popup bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-4"
          :style="popupStyle" @click.stop>
-        <div class="flex items-center justify-between mb-3">
-            <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300" x-text="selectedDay ? selectedDay.fullDate : ''"></h3>
+        <div class="flex items-center justify-end mb-3">
             <button @click="closePopup()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
             </button>
@@ -98,42 +97,37 @@
                         <span x-show="rec.end_date" class="text-gray-500 dark:text-gray-400"> ~ </span>
                         <span x-show="rec.end_date" class="text-gray-500 dark:text-gray-400" x-text="rec.end_date"></span>
                     </div>
-                    <form action="/record/delete" method="POST" class="inline" onsubmit="return confirm('删除？')">
-                        <input type="hidden" name="id" :value="rec.id">
-                        <button type="submit" class="text-red-500 hover:text-red-700 text-xs ml-2 shrink-0">删除</button>
-                    </form>
+                    <button type="button" @click="deleteRecord(rec.id)" class="text-red-500 hover:text-red-700 text-xs ml-2 shrink-0">删除</button>
                 </div>
             </template>
         </div>
 
         <!-- Mark period start -->
         <div class="border-t border-gray-200 dark:border-gray-600 pt-3 mb-3">
-            <form action="/record/create" method="POST" class="flex items-end gap-1.5">
-                <input type="hidden" name="start_date" :value="selectedDay ? selectedDay.fullDate : ''">
+            <div class="flex items-end gap-1.5">
                 <div x-show="familyMode">
-                    <select name="person_id" class="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg px-2 py-1 text-xs">
+                    <select x-model="selectedPersonId" class="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg px-2 py-1 text-xs">
                         {{range .Persons}}<option value="{{.ID}}">{{.Name}}</option>{{end}}
                     </select>
                 </div>
-                <input x-show="!familyMode" type="hidden" name="person_id" value="{{(index .Persons 0).ID}}">
-                <input type="date" name="end_date" class="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg px-2 py-1 text-xs flex-1" placeholder="结束">
-                <input type="text" name="note" class="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg px-2 py-1 text-xs w-16" placeholder="备注">
-                <button type="submit" class="bg-pink-600 text-white px-2 py-1 rounded-lg text-xs hover:bg-pink-700 shrink-0">开始</button>
-            </form>
+                <input x-show="!familyMode" type="hidden" x-model="selectedPersonId" value="{{(index .Persons 0).ID}}">
+                <input type="date" x-model="newEndDate" class="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg px-2 py-1 text-xs flex-1" placeholder="结束">
+                <input type="text" x-model="newNote" class="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg px-2 py-1 text-xs w-16" placeholder="备注">
+                <button type="button" @click="createRecord()" class="bg-pink-600 text-white px-2 py-1 rounded-lg text-xs hover:bg-pink-700 shrink-0">开始</button>
+            </div>
         </div>
 
         <!-- Mark period end -->
         <div x-show="openRecords.length > 0" class="border-t border-gray-200 dark:border-gray-600 pt-3 mb-3">
             <template x-for="rec in openRecords" :key="'end-'+rec.id">
-                <form action="/record/edit" method="POST" class="flex items-center gap-1.5 mb-1.5">
-                    <input type="hidden" name="id" :value="rec.id">
-                    <input type="hidden" name="start_date" :value="rec.start_date">
-                    <input type="hidden" name="person_id" :value="rec.person_id">
+                <div class="flex items-center gap-1.5 mb-1.5">
+                    <input type="hidden" :value="rec.id">
+                    <input type="hidden" :value="rec.start_date">
+                    <input type="hidden" :value="rec.person_id">
                     <span class="w-2 h-2 rounded-full shrink-0" :style="'background-color:' + getColor(rec.person_id)"></span>
                     <span class="text-xs text-gray-600 dark:text-gray-400 truncate flex-1" x-text="getPersonName(rec.person_id) + ' ' + rec.start_date"></span>
-                    <input type="hidden" name="end_date" :value="selectedDay ? selectedDay.fullDate : ''">
-                    <button type="submit" class="bg-purple-600 text-white px-2 py-0.5 rounded text-xs hover:bg-purple-700 shrink-0">结束</button>
-                </form>
+                    <button type="button" @click="endRecord(rec)" class="bg-purple-600 text-white px-2 py-0.5 rounded text-xs hover:bg-purple-700 shrink-0">结束</button>
+                </div>
             </template>
         </div>
 
@@ -165,6 +159,20 @@
                     </template>
                 </div>
             </div>
+            <div class="flex items-center gap-3 mb-2">
+                <div class="flex items-center gap-1">
+                    <label class="text-xs text-gray-500 dark:text-gray-400">体重</label>
+                    <input type="number" step="0.1" min="0" max="500" x-model.number="dailyLog.weight" @blur="saveDailyLog()"
+                        class="w-16 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded px-1.5 py-0.5 text-xs"
+                        placeholder="kg">
+                </div>
+                <div class="flex items-center gap-1">
+                    <label class="text-xs text-gray-500 dark:text-gray-400">体温</label>
+                    <input type="number" step="0.1" min="30" max="45" x-model.number="dailyLog.temperature" @blur="saveDailyLog()"
+                        class="w-16 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded px-1.5 py-0.5 text-xs"
+                        placeholder="°C">
+                </div>
+            </div>
             <div class="flex items-center gap-2">
                 <button @click="saveDailyLog()" class="bg-pink-600 text-white px-3 py-1 rounded-lg text-xs hover:bg-pink-700 transition"
                     :disabled="dailyLogSaving" x-text="dailyLogSaving ? '...' : '保存'"></button>
@@ -193,11 +201,14 @@ function calendar() {
         showPopup: false,
         popupStyle: '',
         calendarDays: [],
-        dailyLog: { flow_level: null, symptoms: '', note: '' },
+        dailyLog: { flow_level: null, symptoms: '', note: '', weight: null, temperature: null },
         dailyLogSaving: false,
         dailyLogSaved: false,
         flowLevels: { 1: '少', 2: '中', 3: '多' },
         symptomOptions: ['痛经', '头痛', '腰酸', '腹胀', '疲劳', '情绪波动', '乳房胀痛', '恶心', '失眠', '食欲变化'],
+        selectedPersonId: {{(index .Persons 0).ID}},
+        newEndDate: '',
+        newNote: '',
 
         init() {
             const settings = loadSettings();
@@ -273,6 +284,8 @@ function calendar() {
         selectDay(day, event) {
             if (!day.inMonth) return;
             this.selectedDay = day;
+            this.newEndDate = '';
+            this.newNote = '';
             this.loadDailyLog();
 
             // Position popup near clicked cell
@@ -296,8 +309,8 @@ function calendar() {
                 const resp = await fetch('/api/daily/?person_id=' + this.persons[0].id);
                 const logs = await resp.json();
                 const log = logs.find(l => l.date === this.selectedDay.fullDate);
-                this.dailyLog = log ? { flow_level: log.flow_level, symptoms: log.symptoms || '', note: log.note || '' } : { flow_level: null, symptoms: '', note: '' };
-            } catch(e) { this.dailyLog = { flow_level: null, symptoms: '', note: '' }; }
+                this.dailyLog = log ? { flow_level: log.flow_level, symptoms: log.symptoms || '', note: log.note || '', weight: log.weight || null, temperature: log.temperature || null } : { flow_level: null, symptoms: '', note: '', weight: null, temperature: null };
+            } catch(e) { this.dailyLog = { flow_level: null, symptoms: '', note: '', weight: null, temperature: null }; }
             this.dailyLogSaved = false;
         },
 
@@ -319,12 +332,61 @@ function calendar() {
                 await fetch('/api/daily/?person_id=' + this.persons[0].id, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ date: this.selectedDay.fullDate, flow_level: this.dailyLog.flow_level, symptoms: this.dailyLog.symptoms, note: this.dailyLog.note })
+                    body: JSON.stringify({ date: this.selectedDay.fullDate, flow_level: this.dailyLog.flow_level, symptoms: this.dailyLog.symptoms, note: this.dailyLog.note, weight: this.dailyLog.weight, temperature: this.dailyLog.temperature })
                 });
                 this.dailyLogSaved = true;
                 setTimeout(() => this.dailyLogSaved = false, 2000);
             } catch(e) {}
             this.dailyLogSaving = false;
+        },
+
+        async createRecord() {
+            if (!this.selectedDay) return;
+            const formData = new URLSearchParams();
+            formData.append('start_date', this.selectedDay.fullDate);
+            formData.append('person_id', this.selectedPersonId);
+            if (this.newEndDate) formData.append('end_date', this.newEndDate);
+            if (this.newNote) formData.append('note', this.newNote);
+            try {
+                await fetch('/record/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: formData.toString()
+                });
+                await this.loadData();
+                this.newEndDate = '';
+                this.newNote = '';
+            } catch(e) {}
+        },
+
+        async deleteRecord(id) {
+            if (!confirm('删除？')) return;
+            const formData = new URLSearchParams();
+            formData.append('id', id);
+            try {
+                await fetch('/record/delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: formData.toString()
+                });
+                await this.loadData();
+            } catch(e) {}
+        },
+
+        async endRecord(rec) {
+            const formData = new URLSearchParams();
+            formData.append('id', rec.id);
+            formData.append('start_date', rec.start_date);
+            formData.append('person_id', rec.person_id);
+            formData.append('end_date', this.selectedDay ? this.selectedDay.fullDate : '');
+            try {
+                await fetch('/record/edit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: formData.toString()
+                });
+                await this.loadData();
+            } catch(e) {}
         },
 
         get dayRecords() {

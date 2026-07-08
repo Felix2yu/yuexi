@@ -12,6 +12,7 @@ func ExportPage(w http.ResponseWriter, r *http.Request) {
 
 func ExportDownload(w http.ResponseWriter, r *http.Request) {
 	personIDStr := r.URL.Query().Get("person_id")
+	userID := GetUserID(r)
 
 	var data []byte
 	var err error
@@ -22,7 +23,7 @@ func ExportDownload(w http.ResponseWriter, r *http.Request) {
 		data, err = service.ExportPerson(personID)
 		filename = "yuexi_person_" + personIDStr + ".json"
 	} else {
-		data, err = service.ExportAll()
+		data, err = service.ExportAllByUser(userID)
 		filename = "yuexi_all.json"
 	}
 

@@ -53,6 +53,11 @@ func UserCount() int {
 	return cnt
 }
 
+func UpdateUserPassword(userID int64, passwordHash string) error {
+	_, err := DB.Exec("UPDATE users SET password_hash = ? WHERE id = ?", passwordHash, userID)
+	return err
+}
+
 // Person CRUD
 
 func GetPersonsByUser(userID int64) ([]Person, error) {
@@ -290,7 +295,7 @@ func UpdateNotificationLastNotified(userID int64, date string) error {
 // DailyLog CRUD
 
 func GetDailyLogsByPerson(personID int64) ([]DailyLog, error) {
-	rows, err := DB.Query("SELECT id, person_id, date, flow_level, COALESCE(symptoms, ''), COALESCE(note, ''), COALESCE(created_at, '') FROM daily_logs WHERE person_id = ? ORDER BY date DESC", personID)
+	rows, err := DB.Query("SELECT id, person_id, date, flow_level, COALESCE(symptoms, ''), COALESCE(note, ''), weight, temperature, COALESCE(created_at, '') FROM daily_logs WHERE person_id = ? ORDER BY date DESC", personID)
 	if err != nil {
 		return nil, err
 	}
@@ -300,12 +305,19 @@ func GetDailyLogsByPerson(personID int64) ([]DailyLog, error) {
 	for rows.Next() {
 		var l DailyLog
 		var flowLevel sql.NullInt64
-		if err := rows.Scan(&l.ID, &l.PersonID, &l.Date, &flowLevel, &l.Symptoms, &l.Note, &l.CreatedAt); err != nil {
+		var weight, temperature sql.NullFloat64
+		if err := rows.Scan(&l.ID, &l.PersonID, &l.Date, &flowLevel, &l.Symptoms, &l.Note, &weight, &temperature, &l.CreatedAt); err != nil {
 			return nil, err
 		}
 		if flowLevel.Valid {
 			v := int(flowLevel.Int64)
 			l.FlowLevel = &v
+		}
+		if weight.Valid {
+			l.Weight = &weight.Float64
+		}
+		if temperature.Valid {
+			l.Temperature = &temperature.Float64
 		}
 		l.Date = normalizeDate(l.Date)
 		l.CreatedAt = normalizeDate(l.CreatedAt)
@@ -317,8 +329,9 @@ func GetDailyLogsByPerson(personID int64) ([]DailyLog, error) {
 func GetDailyLog(personID int64, date string) (*DailyLog, error) {
 	var l DailyLog
 	var flowLevel sql.NullInt64
-	err := DB.QueryRow("SELECT id, person_id, date, flow_level, COALESCE(symptoms, ''), COALESCE(note, ''), COALESCE(created_at, '') FROM daily_logs WHERE person_id = ? AND date = ?", personID, date).
-		Scan(&l.ID, &l.PersonID, &l.Date, &flowLevel, &l.Symptoms, &l.Note, &l.CreatedAt)
+	var weight, temperature sql.NullFloat64
+	err := DB.QueryRow("SELECT id, person_id, date, flow_level, COALESCE(symptoms, ''), COALESCE(note, ''), weight, temperature, COALESCE(created_at, '') FROM daily_logs WHERE person_id = ? AND date = ?", personID, date).
+		Scan(&l.ID, &l.PersonID, &l.Date, &flowLevel, &l.Symptoms, &l.Note, &weight, &temperature, &l.CreatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -326,17 +339,23 @@ func GetDailyLog(personID int64, date string) (*DailyLog, error) {
 		v := int(flowLevel.Int64)
 		l.FlowLevel = &v
 	}
+	if weight.Valid {
+		l.Weight = &weight.Float64
+	}
+	if temperature.Valid {
+		l.Temperature = &temperature.Float64
+	}
 	l.Date = normalizeDate(l.Date)
 	l.CreatedAt = normalizeDate(l.CreatedAt)
 	return &l, nil
 }
 
-func UpsertDailyLog(personID int64, date string, flowLevel *int, symptoms, note string) error {
-	_, err := DB.Exec(`INSERT INTO daily_logs (person_id, date, flow_level, symptoms, note)
-		VALUES (?, ?, ?, ?, ?)
-		ON CONFLICT(person_id, date) DO UPDATE SET flow_level=?, symptoms=?, note=?`,
-		personID, date, flowLevel, symptoms, note,
-		flowLevel, symptoms, note)
+func UpsertDailyLog(personID int64, date string, flowLevel *int, symptoms, note string, weight, temperature *float64) error {
+	_, err := DB.Exec(`INSERT INTO daily_logs (person_id, date, flow_level, symptoms, note, weight, temperature)
+		VALUES (?, ?, ?, ?, ?, ?, ?)
+		ON CONFLICT(person_id, date) DO UPDATE SET flow_level=?, symptoms=?, note=?, weight=?, temperature=?`,
+		personID, date, flowLevel, symptoms, note, weight, temperature,
+		flowLevel, symptoms, note, weight, temperature)
 	return err
 }
 
@@ -346,7 +365,7 @@ func DeleteDailyLog(personID int64, date string) error {
 }
 
 func GetAllDailyLogs() ([]DailyLog, error) {
-	rows, err := DB.Query("SELECT id, person_id, date, flow_level, COALESCE(symptoms, ''), COALESCE(note, ''), COALESCE(created_at, '') FROM daily_logs ORDER BY date DESC")
+	rows, err := DB.Query("SELECT id, person_id, date, flow_level, COALESCE(symptoms, ''), COALESCE(note, ''), weight, temperature, COALESCE(created_at, '') FROM daily_logs ORDER BY date DESC")
 	if err != nil {
 		return nil, err
 	}
@@ -356,12 +375,19 @@ func GetAllDailyLogs() ([]DailyLog, error) {
 	for rows.Next() {
 		var l DailyLog
 		var flowLevel sql.NullInt64
-		if err := rows.Scan(&l.ID, &l.PersonID, &l.Date, &flowLevel, &l.Symptoms, &l.Note, &l.CreatedAt); err != nil {
+		var weight, temperature sql.NullFloat64
+		if err := rows.Scan(&l.ID, &l.PersonID, &l.Date, &flowLevel, &l.Symptoms, &l.Note, &weight, &temperature, &l.CreatedAt); err != nil {
 			return nil, err
 		}
 		if flowLevel.Valid {
 			v := int(flowLevel.Int64)
 			l.FlowLevel = &v
+		}
+		if weight.Valid {
+			l.Weight = &weight.Float64
+		}
+		if temperature.Valid {
+			l.Temperature = &temperature.Float64
 		}
 		l.Date = normalizeDate(l.Date)
 		l.CreatedAt = normalizeDate(l.CreatedAt)

@@ -56,6 +56,14 @@
         </div>
     </div>
 
+    <!-- Symptom distribution chart -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 mb-6" x-show="hasSymptomData">
+        <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">症状分布</h3>
+        <div class="relative" style="height: 250px">
+            <canvas id="symptomChart"></canvas>
+        </div>
+    </div>
+
     <!-- Recent cycle history -->
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 mb-6" x-show="statsData.cycle_lengths && statsData.cycle_lengths.length > 0">
         <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">近期周期记录</h3>
@@ -93,6 +101,12 @@ function stats() {
         statsData: {},
         cycleChart: null,
         periodChart: null,
+        symptomChart: null,
+
+        get hasSymptomData() {
+            const counts = this.statsData.symptom_counts || {};
+            return Object.keys(counts).length > 0;
+        },
 
         async init() {
             const resp = await fetch('/api/records?year=' + new Date().getFullYear() + '&month=' + (new Date().getMonth()+1));
@@ -166,6 +180,40 @@ function stats() {
                         }]
                     },
                     options: chartOpts
+                });
+            }
+
+            // Symptom chart
+            const symptomCounts = this.statsData.symptom_counts || {};
+            const symptomLabels = Object.keys(symptomCounts);
+            const symptomValues = Object.values(symptomCounts);
+            if (this.symptomChart) this.symptomChart.destroy();
+            const ctx3 = document.getElementById('symptomChart');
+            if (ctx3 && symptomLabels.length > 0) {
+                const symptomColors = [
+                    '#ec4899', '#8b5cf6', '#3b82f6', '#10b981', '#f59e0b',
+                    '#ef4444', '#14b8a6', '#f97316', '#6366f1', '#84cc16'
+                ];
+                this.symptomChart = new Chart(ctx3, {
+                    type: 'doughnut',
+                    data: {
+                        labels: symptomLabels,
+                        datasets: [{
+                            data: symptomValues,
+                            backgroundColor: symptomColors.slice(0, symptomLabels.length),
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'right',
+                                labels: { color: textColor, font: { size: 11 }, padding: 12 }
+                            }
+                        }
+                    }
                 });
             }
         }

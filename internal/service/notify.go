@@ -84,6 +84,15 @@ func checkNotifications() {
 				}
 				log.Printf("通知已发送: %s", msg)
 			}
+
+			// Check for cycle anomalies
+			anomalies := DetectCycleAnomaly(p, records)
+			for _, anomaly := range anomalies {
+				msg := fmt.Sprintf("月汐提醒：%s 的周期异常 - %s", p.Name, anomaly.Description)
+				if err := sendNotification(cfg.ShoutrrrURL, msg); err != nil {
+					log.Printf("异常通知发送失败: %v", err)
+				}
+			}
 		}
 
 		db.UpdateNotificationLastNotified(userID, todayStr)

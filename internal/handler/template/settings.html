@@ -43,6 +43,38 @@
         </label>
     </div>
 
+    <!-- Account settings -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
+        <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">账户设置</h2>
+        <a href="/settings/password" class="text-sm text-pink-600 dark:text-pink-400 hover:text-pink-800 dark:hover:text-pink-300">修改密码</a>
+    </div>
+
+    <!-- Cycle anomaly detection -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
+        <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">周期健康检测</h2>
+        <div x-data="{ anomalies: [], loading: true }" x-init="
+            try {
+                const resp = await fetch('/api/anomaly');
+                anomalies = await resp.json();
+            } catch(e) {}
+            loading = false;
+        ">
+            <div x-show="loading" class="text-sm text-gray-500 dark:text-gray-400">检测中...</div>
+            <div x-show="!loading && anomalies.length === 0" class="text-sm text-green-600 dark:text-green-400">
+                周期数据正常，未检测到异常
+            </div>
+            <div x-show="!loading && anomalies.length > 0" class="space-y-2">
+                <template x-for="a in anomalies" :key="a.type">
+                    <div class="flex items-start gap-2 p-2 rounded-lg"
+                         :class="a.severity === 'warning' ? 'bg-yellow-50 dark:bg-yellow-900/20' : 'bg-blue-50 dark:bg-blue-900/20'">
+                        <span class="text-sm" :class="a.severity === 'warning' ? 'text-yellow-600 dark:text-yellow-400' : 'text-blue-600 dark:text-blue-400'">⚠</span>
+                        <span class="text-sm" :class="a.severity === 'warning' ? 'text-yellow-700 dark:text-yellow-300' : 'text-blue-700 dark:text-blue-300'" x-text="a.description"></span>
+                    </div>
+                </template>
+            </div>
+        </div>
+    </div>
+
     <!-- Person colors (family mode only) -->
     <div x-show="familyMode" class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
         <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">人员颜色</h2>

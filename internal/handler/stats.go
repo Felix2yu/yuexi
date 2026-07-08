@@ -5,6 +5,7 @@ import (
 	"math"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 	"yuexi/internal/db"
 	"yuexi/internal/service"
@@ -120,6 +121,22 @@ func StatsAPI(w http.ResponseWriter, r *http.Request) {
 			stats.AvgPeriodLength = avg(periodLengths)
 		}
 
+		// Calculate symptom statistics
+		logs, _ := db.GetDailyLogsByPerson(p.ID)
+		symptomCounts := make(map[string]int)
+		for _, log := range logs {
+			if log.Symptoms != "" {
+				symptoms := strings.Split(log.Symptoms, ",")
+				for _, s := range symptoms {
+					s = strings.TrimSpace(s)
+					if s != "" {
+						symptomCounts[s]++
+					}
+				}
+			}
+		}
+		stats.SymptomCounts = symptomCounts
+
 		result[p.ID] = stats
 	}
 
@@ -143,10 +160,12 @@ func DailyLogAPI(w http.ResponseWriter, r *http.Request) {
 
 	case http.MethodPost:
 		var req struct {
-			Date      string `json:"date"`
-			FlowLevel *int   `json:"flow_level"`
-			Symptoms  string `json:"symptoms"`
-			Note      string `json:"note"`
+			Date        string   `json:"date"`
+			FlowLevel   *int     `json:"flow_level"`
+			Symptoms    string   `json:"symptoms"`
+			Note        string   `json:"note"`
+			Weight      *float64 `json:"weight"`
+			Temperature *float64 `json:"temperature"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			http.Error(w, `{"error":"invalid request"}`, 400)
@@ -156,7 +175,7 @@ func DailyLogAPI(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, `{"error":"missing person_id or date"}`, 400)
 			return
 		}
-		if err := db.UpsertDailyLog(personID, req.Date, req.FlowLevel, req.Symptoms, req.Note); err != nil {
+		if err := db.UpsertDailyLog(personID, req.Date, req.FlowLevel, req.Symptoms, req.Note, req.Weight, req.Temperature); err != nil {
 			http.Error(w, `{"error":"save failed"}`, 500)
 			return
 		}

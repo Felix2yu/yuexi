@@ -2,7 +2,9 @@ package handler
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 	"yuexi/internal/db"
 	"yuexi/internal/service"
@@ -97,4 +99,34 @@ func NotificationStatus(w http.ResponseWriter, r *http.Request) {
 		"upcoming": upcoming,
 	}
 	json.NewEncoder(w).Encode(result)
+}
+
+func CycleAnomalyAPI(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	userID := GetUserID(r)
+
+	personIDStr := r.URL.Query().Get("person_id")
+	if personIDStr == "" {
+		persons, _ := db.GetPersonsByUser(userID)
+		if len(persons) > 0 {
+			personIDStr = fmt.Sprintf("%d", persons[0].ID)
+		}
+	}
+
+	if personIDStr == "" {
+		json.NewEncoder(w).Encode([]service.CycleAnomaly{})
+		return
+	}
+
+	personID, _ := strconv.ParseInt(personIDStr, 10, 64)
+	person, err := db.GetPerson(personID)
+	if err != nil || person.UserID != userID {
+		json.NewEncoder(w).Encode([]service.CycleAnomaly{})
+		return
+	}
+
+	records, _ := db.GetRecordsByPerson(personID)
+	anomalies := service.DetectCycleAnomaly(*person, records)
+
+	json.NewEncoder(w).Encode(anomalies)
 }

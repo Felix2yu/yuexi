@@ -50,6 +50,9 @@ func main() {
 
 		r.Get("/settings", handler.Settings)
 
+		r.Get("/settings/password", handler.PasswordPage)
+		r.Post("/settings/password", handler.PasswordPost)
+
 		r.Post("/record/create", handler.RecordCreate)
 		r.Post("/record/edit", handler.RecordEdit)
 		r.Post("/record/delete", handler.RecordDelete)
@@ -64,6 +67,7 @@ func main() {
 		r.Post("/api/notification", handler.NotificationConfigAPI)
 		r.Post("/api/notification/test", handler.NotificationTest)
 		r.Get("/api/notification/status", handler.NotificationStatus)
+		r.Get("/api/anomaly", handler.CycleAnomalyAPI)
 
 		r.Get("/stats", handler.StatsPage)
 		r.Get("/api/stats", handler.StatsAPI)

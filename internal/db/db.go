@@ -93,6 +93,10 @@ func migrate() {
 	migrateAddColumn("persons", "user_id", "INTEGER NOT NULL DEFAULT 1")
 	migrateAddColumn("notification_config", "user_id", "INTEGER NOT NULL DEFAULT 1")
 
+	// Migration: add weight and temperature columns to daily_logs
+	migrateAddColumn("daily_logs", "weight", "REAL")
+	migrateAddColumn("daily_logs", "temperature", "REAL")
+
 	// Migrate notification_config from single-row to per-user
 	var count int
 	DB.QueryRow("SELECT COUNT(*) FROM notification_config").Scan(&count)

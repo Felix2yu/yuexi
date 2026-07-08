@@ -204,6 +204,77 @@ func LogoutPost(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/login", http.StatusSeeOther)
 }
 
+func PasswordPage(w http.ResponseWriter, r *http.Request) {
+	data := injectUser(r, map[string]interface{}{
+		"Error":   r.URL.Query().Get("error"),
+		"Success": r.URL.Query().Get("success"),
+	})
+
+	tmpl, err := parseTemplates("layout.html", "password.html")
+	if err != nil {
+		http.Error(w, "Template error: "+err.Error(), 500)
+		return
+	}
+
+	tmpl.ExecuteTemplate(w, "layout", data)
+}
+
+func PasswordPost(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Redirect(w, r, "/settings/password", http.StatusSeeOther)
+		return
+	}
+
+	userID := GetUserID(r)
+	if userID == 0 {
+		http.Redirect(w, r, "/login", http.StatusSeeOther)
+		return
+	}
+
+	oldPassword := r.FormValue("old_password")
+	newPassword := r.FormValue("new_password")
+	confirmPassword := r.FormValue("confirm_password")
+
+	if oldPassword == "" || newPassword == "" || confirmPassword == "" {
+		http.Redirect(w, r, "/settings/password?error=请填写所有字段", http.StatusSeeOther)
+		return
+	}
+
+	if len(newPassword) < 4 {
+		http.Redirect(w, r, "/settings/password?error=新密码至少4个字符", http.StatusSeeOther)
+		return
+	}
+
+	if newPassword != confirmPassword {
+		http.Redirect(w, r, "/settings/password?error=两次新密码不一致", http.StatusSeeOther)
+		return
+	}
+
+	user, err := db.GetUser(userID)
+	if err != nil {
+		http.Redirect(w, r, "/settings/password?error=用户不存在", http.StatusSeeOther)
+		return
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(oldPassword)); err != nil {
+		http.Redirect(w, r, "/settings/password?error=旧密码错误", http.StatusSeeOther)
+		return
+	}
+
+	hash, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+	if err != nil {
+		http.Redirect(w, r, "/settings/password?error=修改失败，请重试", http.StatusSeeOther)
+		return
+	}
+
+	if err := db.UpdateUserPassword(userID, string(hash)); err != nil {
+		http.Redirect(w, r, "/settings/password?error=修改失败", http.StatusSeeOther)
+		return
+	}
+
+	http.Redirect(w, r, "/settings/password?success=密码修改成功", http.StatusSeeOther)
+}
+
 func parseTemplatesCached(names ...string) (*template.Template, error) {
 	return parseTemplates(names...)
 }

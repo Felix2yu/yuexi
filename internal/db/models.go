@@ -39,13 +39,15 @@ type ExportData struct {
 }
 
 type DailyLog struct {
-	ID        int64   `json:"id"`
-	PersonID  int64   `json:"person_id"`
-	Date      string  `json:"date"`
-	FlowLevel *int    `json:"flow_level"`
-	Symptoms  string  `json:"symptoms"`
-	Note      string  `json:"note"`
-	CreatedAt string  `json:"created_at"`
+	ID          int64    `json:"id"`
+	PersonID    int64    `json:"person_id"`
+	Date        string   `json:"date"`
+	FlowLevel   *int     `json:"flow_level"`
+	Symptoms    string   `json:"symptoms"`
+	Note        string   `json:"note"`
+	Weight      *float64 `json:"weight,omitempty"`
+	Temperature *float64 `json:"temperature,omitempty"`
+	CreatedAt   string   `json:"created_at"`
 }
 
 type CycleStats struct {
@@ -57,6 +59,7 @@ type CycleStats struct {
 	CycleLengths    []CycleDataPoint `json:"cycle_lengths"`
 	PeriodLengths   []CycleDataPoint `json:"period_lengths"`
 	Regularity      string         `json:"regularity"`
+	SymptomCounts   map[string]int `json:"symptom_counts,omitempty"`
 }
 
 type CycleDataPoint struct {

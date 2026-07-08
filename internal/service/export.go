@@ -26,11 +26,11 @@ func ExportPerson(personID int64) ([]byte, error) {
 		DailyLogs: logs,
 	}
 
-	return json.MarshalIndent(data, "", "  ")
+	return json.MarshalIndent([]db.ExportData{data}, "", "  ")
 }
 
-func ExportAll() ([]byte, error) {
-	persons, err := db.GetAllPersons()
+func ExportAllByUser(userID int64) ([]byte, error) {
+	persons, err := db.GetPersonsByUser(userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get persons: %w", err)
 	}
@@ -54,8 +54,21 @@ func ExportAll() ([]byte, error) {
 
 func ImportData(reader io.Reader, userID int64) (int, error) {
 	var allData []db.ExportData
-	if err := json.NewDecoder(reader).Decode(&allData); err != nil {
-		return 0, fmt.Errorf("invalid JSON format: %w", err)
+
+	// Read the entire content first
+	content, err := io.ReadAll(reader)
+	if err != nil {
+		return 0, fmt.Errorf("failed to read input: %w", err)
+	}
+
+	// Try to decode as array first
+	if err := json.Unmarshal(content, &allData); err != nil {
+		// Try to decode as single object
+		var singleData db.ExportData
+		if err2 := json.Unmarshal(content, &singleData); err2 != nil {
+			return 0, fmt.Errorf("invalid JSON format: %w", err)
+		}
+		allData = []db.ExportData{singleData}
 	}
 
 	count := 0
@@ -80,7 +93,7 @@ func ImportData(reader io.Reader, userID int64) (int, error) {
 		for _, log := range data.DailyLogs {
 			log.ID = 0
 			log.PersonID = newPerson.ID
-			db.UpsertDailyLog(newPerson.ID, log.Date, log.FlowLevel, log.Symptoms, log.Note)
+			db.UpsertDailyLog(newPerson.ID, log.Date, log.FlowLevel, log.Symptoms, log.Note, log.Weight, log.Temperature)
 		}
 	}
 
