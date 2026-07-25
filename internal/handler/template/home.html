@@ -110,14 +110,14 @@
         </div>
 
         <div class="border-t border-rose-100 dark:border-rose-900/30 pt-4 mb-4">
-            <div class="flex items-center gap-2">
+            <div class="flex flex-wrap items-center gap-2">
                 <div x-show="familyMode">
                     <select x-model="selectedPersonId" class="border border-gray-200 dark:border-gray-700 bg-white dark:bg-ink-800 text-gray-700 dark:text-gray-200 rounded-xl px-3 py-1.5 text-xs font-medium focus:ring-2 focus:ring-rose-500 focus:border-transparent transition-all">
                         {{range .Persons}}<option value="{{.ID}}">{{.Name}}</option>{{end}}
                     </select>
                 </div>
                 <input x-show="!familyMode" type="hidden" x-model="selectedPersonId" value="{{(index .Persons 0).ID}}">
-                <input type="text" x-model="newNote" class="flex-1 border border-gray-200 dark:border-gray-700 bg-white dark:bg-ink-800 text-gray-700 dark:text-gray-200 rounded-xl px-3 py-1.5 text-xs focus:ring-2 focus:ring-rose-500 focus:border-transparent transition-all" placeholder="备注（可选）">
+                <input type="text" x-model="newNote" class="flex-1 min-w-0 border border-gray-200 dark:border-gray-700 bg-white dark:bg-ink-800 text-gray-700 dark:text-gray-200 rounded-xl px-3 py-1.5 text-xs focus:ring-2 focus:ring-rose-500 focus:border-transparent transition-all" placeholder="备注（可选）">
                 <button type="button" @click="createRecord()" class="btn-primary text-white px-4 py-1.5 rounded-xl text-xs font-medium shrink-0">开始</button>
             </div>
         </div>
