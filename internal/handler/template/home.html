@@ -1,174 +1,179 @@
 {{define "content"}}
 <style>
     .cal-cell { aspect-ratio: 1; }
-    .cal-bar { position: absolute; bottom: 2px; height: 12px; border-radius: 6px; left: 0; right: 0; }
-    .cal-bar-start { right: -2px; border-radius: 6px 0 0 6px; }
-    .cal-bar-mid { left: -2px; right: -2px; border-radius: 0; }
-    .cal-bar-end { left: -2px; border-radius: 0 6px 6px 0; }
-    .cal-bar-single { border-radius: 6px; }
+    .cal-bar { position: absolute; bottom: 3px; height: 10px; border-radius: 5px; left: 2px; right: 2px; }
+    .cal-bar-start { right: 0; border-radius: 5px 0 0 5px; }
+    .cal-bar-mid { left: 0; right: 0; border-radius: 0; }
+    .cal-bar-end { left: 0; border-radius: 0 5px 5px 0; }
+    .cal-bar-single { border-radius: 5px; left: 3px; right: 3px; }
     .popup-overlay { position: fixed; inset: 0; z-index: 40; }
-    .day-popup { position: fixed; z-index: 50; width: 320px; max-height: 80vh; overflow-y: auto;
-                 box-shadow: 0 10px 40px rgba(0,0,0,0.15); border-radius: 12px; }
+    .day-popup { position: fixed; z-index: 50; width: 340px; max-height: 85vh; overflow-y: auto;
+                 border-radius: 20px; left: 0; top: 0; }
+    @media (max-width: 640px) {
+        .day-popup { width: calc(100vw - 1.5rem); }
+    }
 </style>
 
 <div x-data="calendar()" x-init="init()" @click.self="closePopup()">
-    <!-- Person legend (family mode only) -->
-    <div x-show="familyMode" class="mb-6 flex flex-wrap items-center gap-3">
-        <span class="text-sm text-gray-600 dark:text-gray-400 font-medium">人员：</span>
+
+    <div x-show="familyMode" class="mb-5 flex flex-wrap items-center gap-3 animate-fade-in-up animate-delay-100">
+        <span class="text-sm text-gray-600 dark:text-gray-400 font-medium font-serif-cn">人员：</span>
         {{range $i, $p := .Persons}}
-        <label class="flex items-center gap-1.5 cursor-pointer">
-            <input type="checkbox" :checked="personColors[{{$p.ID}}] !== undefined" @change="togglePerson({{$p.ID}})" class="rounded">
-            <span class="w-3 h-3 rounded-full" :style="'background-color:' + getColor({{$p.ID}})"></span>
-            <span class="text-sm text-gray-700 dark:text-gray-300">{{$p.Name}}</span>
+        <label class="flex items-center gap-1.5 cursor-pointer group">
+            <input type="checkbox" :checked="personColors[{{$p.ID}}] !== undefined" @change="togglePerson({{$p.ID}})" class="w-3.5 h-3.5 rounded-full border-2 border-gray-300 dark:border-gray-600 text-rose-500 focus:ring-rose-500 focus:ring-2">
+            <span class="w-2.5 h-2.5 rounded-full" :style="'background-color:' + getColor({{$p.ID}})"></span>
+            <span class="text-sm text-gray-700 dark:text-gray-300 group-hover:text-rose-500 dark:group-hover:text-rose-400 transition-colors">{{$p.Name}}</span>
         </label>
         {{end}}
     </div>
 
-    <!-- Calendar -->
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
-        <div class="flex items-center justify-between mb-3">
-            <button @click="prevMonth()" class="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition">
+    <div class="glass-card rounded-3xl shadow-soft p-5 sm:p-7 animate-fade-in-up animate-delay-200">
+        <div class="flex items-center justify-between mb-5">
+            <button @click="prevMonth()" class="p-2.5 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl transition-all active:scale-95">
                 <svg class="w-5 h-5 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
             </button>
-            <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-100" x-text="year + '年' + month + '月'"></h2>
-            <button @click="nextMonth()" class="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition">
+            <h2 class="text-xl sm:text-2xl font-display font-semibold text-gray-800 dark:text-gray-100 tracking-wide" x-text="year + ' 年 ' + month + ' 月'"></h2>
+            <button @click="nextMonth()" class="p-2.5 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl transition-all active:scale-95">
                 <svg class="w-5 h-5 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
             </button>
         </div>
 
-        <div class="grid grid-cols-7 gap-px bg-gray-200 dark:bg-gray-600">
-            <div class="bg-gray-50 dark:bg-gray-750 text-center text-xs font-medium text-gray-500 dark:text-gray-400 py-1.5">日</div>
-            <div class="bg-gray-50 dark:bg-gray-750 text-center text-xs font-medium text-gray-500 dark:text-gray-400 py-1.5">一</div>
-            <div class="bg-gray-50 dark:bg-gray-750 text-center text-xs font-medium text-gray-500 dark:text-gray-400 py-1.5">二</div>
-            <div class="bg-gray-50 dark:bg-gray-750 text-center text-xs font-medium text-gray-500 dark:text-gray-400 py-1.5">三</div>
-            <div class="bg-gray-50 dark:bg-gray-750 text-center text-xs font-medium text-gray-500 dark:text-gray-400 py-1.5">四</div>
-            <div class="bg-gray-50 dark:bg-gray-750 text-center text-xs font-medium text-gray-500 dark:text-gray-400 py-1.5">五</div>
-            <div class="bg-gray-50 dark:bg-gray-750 text-center text-xs font-medium text-gray-500 dark:text-gray-400 py-1.5">六</div>
+        <div class="grid grid-cols-7 gap-0.5 bg-rose-100/60 dark:bg-rose-900/30 rounded-xl overflow-hidden">
+            <div class="bg-rose-50/80 dark:bg-ink-800/80 text-center text-xs font-medium text-gray-500 dark:text-gray-400 py-2 font-serif-cn">日</div>
+            <div class="bg-rose-50/80 dark:bg-ink-800/80 text-center text-xs font-medium text-gray-500 dark:text-gray-400 py-2 font-serif-cn">一</div>
+            <div class="bg-rose-50/80 dark:bg-ink-800/80 text-center text-xs font-medium text-gray-500 dark:text-gray-400 py-2 font-serif-cn">二</div>
+            <div class="bg-rose-50/80 dark:bg-ink-800/80 text-center text-xs font-medium text-gray-500 dark:text-gray-400 py-2 font-serif-cn">三</div>
+            <div class="bg-rose-50/80 dark:bg-ink-800/80 text-center text-xs font-medium text-gray-500 dark:text-gray-400 py-2 font-serif-cn">四</div>
+            <div class="bg-rose-50/80 dark:bg-ink-800/80 text-center text-xs font-medium text-gray-500 dark:text-gray-400 py-2 font-serif-cn">五</div>
+            <div class="bg-rose-50/80 dark:bg-ink-800/80 text-center text-xs font-medium text-gray-500 dark:text-gray-400 py-2 font-serif-cn">六</div>
 
             <template x-for="day in calendarDays" :key="day.key">
-                <div class="relative cal-cell bg-white dark:bg-gray-800 p-1 cursor-pointer overflow-hidden"
-                     :class="{'ring-2 ring-pink-500': day.isToday, 'bg-gray-50 dark:bg-gray-750': !day.inMonth}"
+                <div class="relative cal-cell bg-white dark:bg-ink-800 p-1 sm:p-1.5 cursor-pointer overflow-hidden transition-all hover:bg-rose-50/50 dark:hover:bg-rose-900/10 group"
+                     :class="{'ring-2 ring-inset ring-rose-400 z-10': day.isToday, 'bg-rose-50/30 dark:bg-ink-800/30': !day.inMonth}"
                      :data-date="day.fullDate"
                      @click="selectDay(day, $event)">
-                    <div class="text-sm font-medium leading-none"
-                         :class="{'text-pink-600 dark:text-pink-400 font-bold': day.isToday, 'text-gray-900 dark:text-gray-100': !day.isToday && day.inMonth, 'text-gray-300 dark:text-gray-600': !day.inMonth}"
+                    <div class="text-sm font-medium leading-none flex items-center justify-center h-full"
+                         :class="{
+                            'text-rose-500 dark:text-rose-400 font-bold': day.isToday,
+                            'text-gray-800 dark:text-gray-200': !day.isToday && day.inMonth,
+                            'text-gray-300 dark:text-gray-600': !day.inMonth
+                         }"
                          x-text="day.date"></div>
                     <template x-for="bar in day.bars" :key="bar.pid + '-' + bar.kind">
                         <div class="cal-bar" :class="'cal-bar-' + bar.pos"
-                             :style="'background-color:' + getColor(bar.pid) + (bar.kind === 'predicted' ? ';opacity:0.4' : '')"></div>
+                             :style="'background-color:' + getColor(bar.pid) + (bar.kind === 'predicted' ? ';opacity:0.35' : '')"></div>
                     </template>
                     <template x-for="pid in day.ovulationPids" :key="'ov-'+pid">
-                        <div class="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-green-500"></div>
+                        <div class="absolute top-1 right-1 w-2 h-2 rounded-full bg-emerald-400 ring-1 ring-white dark:ring-ink-800"></div>
                     </template>
                 </div>
             </template>
         </div>
 
-        <!-- Legend -->
-        <div class="flex flex-wrap gap-4 mt-3 text-xs text-gray-600 dark:text-gray-400">
+        <div class="flex flex-wrap gap-4 mt-4 text-xs text-gray-500 dark:text-gray-400">
             <template x-for="(color, pid) in personColors" :key="pid">
-                <div class="flex items-center gap-1">
-                    <div class="w-4 h-1.5 rounded-sm" :style="'background-color:' + color"></div>
-                    <span x-text="getPersonName(pid)"></span>
+                <div class="flex items-center gap-1.5">
+                    <div class="w-5 h-2 rounded-full" :style="'background-color:' + color"></div>
+                    <span x-text="getPersonName(pid)" class="font-medium"></span>
                 </div>
             </template>
-            <div class="flex items-center gap-1"><div class="w-4 h-1.5 rounded-sm bg-gray-400 opacity-40"></div><span>预测</span></div>
-            <div class="flex items-center gap-1"><div class="w-1.5 h-1.5 rounded-full bg-green-500"></div><span>排卵日</span></div>
+            <div class="flex items-center gap-1.5"><div class="w-5 h-2 rounded-full bg-gray-400 opacity-40"></div><span>预测</span></div>
+            <div class="flex items-center gap-1.5"><div class="w-2 h-2 rounded-full bg-emerald-400"></div><span>排卵日</span></div>
         </div>
     </div>
 
-    <!-- Floating popup -->
-    <div x-show="showPopup" x-cloak class="popup-overlay" @click="closePopup()"></div>
-    <div x-show="showPopup" x-cloak class="day-popup bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-4"
-         :style="popupStyle" @click.stop>
-        <div class="flex items-center justify-end mb-3">
-            <button @click="closePopup()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+    <div x-show="showPopup" x-cloak class="popup-overlay bg-black/20 backdrop-blur-sm" @click="closePopup()"></div>
+    <div id="dayPopup" x-show="showPopup" x-cloak class="day-popup glass-card shadow-soft border border-white/50 dark:border-white/10 p-5"
+         @click.stop>
+        <div class="flex items-center justify-between mb-4">
+            <div>
+                <h3 class="font-display font-semibold text-gray-800 dark:text-gray-100 text-lg" x-text="selectedDay ? selectedDay.fullDate : ''"></h3>
+                <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">点击日期查看和记录</p>
+            </div>
+            <button @click="closePopup()" class="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-all">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
             </button>
         </div>
 
-        <!-- Existing records -->
-        <div x-show="dayRecords.length > 0" class="mb-3 space-y-1.5">
+        <div x-show="dayRecords.length > 0" class="mb-4 space-y-2">
             <template x-for="rec in dayRecords" :key="rec.id">
-                <div class="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700 rounded-lg text-sm">
+                <div class="flex items-center justify-between p-3 bg-rose-50/50 dark:bg-rose-900/20 rounded-xl text-sm border border-rose-100/50 dark:border-rose-900/30">
                     <div class="truncate">
-                        <span class="w-2 h-2 rounded-full inline-block mr-1" :style="'background-color:' + getColor(rec.person_id)"></span>
-                        <span class="text-gray-800 dark:text-gray-200" x-text="rec.start_date"></span>
-                        <span x-show="rec.end_date" class="text-gray-500 dark:text-gray-400"> ~ </span>
-                        <span x-show="rec.end_date" class="text-gray-500 dark:text-gray-400" x-text="rec.end_date"></span>
+                        <span class="w-2 h-2 rounded-full inline-block mr-1.5" :style="'background-color:' + getColor(rec.person_id)"></span>
+                        <span class="text-gray-700 dark:text-gray-200 font-medium" x-text="rec.start_date"></span>
+                        <span x-show="rec.end_date" class="text-gray-400 dark:text-gray-500"> ~ </span>
+                        <span x-show="rec.end_date" class="text-gray-400 dark:text-gray-500" x-text="rec.end_date"></span>
                     </div>
-                    <button type="button" @click="deleteRecord(rec.id)" class="text-red-500 hover:text-red-700 text-xs ml-2 shrink-0">删除</button>
+                    <button type="button" @click="deleteRecord(rec.id)" class="text-rose-500 hover:text-rose-600 text-xs ml-2 shrink-0 font-medium">删除</button>
                 </div>
             </template>
         </div>
 
-        <!-- Mark period start -->
-        <div class="border-t border-gray-200 dark:border-gray-600 pt-3 mb-3">
-            <div class="flex items-center gap-1.5">
+        <div class="border-t border-rose-100 dark:border-rose-900/30 pt-4 mb-4">
+            <div class="flex flex-wrap items-center gap-2">
                 <div x-show="familyMode">
-                    <select x-model="selectedPersonId" class="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg px-2 py-1 text-xs">
+                    <select x-model="selectedPersonId" class="border border-gray-200 dark:border-gray-700 bg-white dark:bg-ink-800 text-gray-700 dark:text-gray-200 rounded-xl px-3 py-1.5 text-xs font-medium focus:ring-2 focus:ring-rose-500 focus:border-transparent transition-all">
                         {{range .Persons}}<option value="{{.ID}}">{{.Name}}</option>{{end}}
                     </select>
                 </div>
                 <input x-show="!familyMode" type="hidden" x-model="selectedPersonId" value="{{(index .Persons 0).ID}}">
-                <input type="text" x-model="newNote" class="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg px-2 py-1 text-xs flex-1" placeholder="备注（可选）">
-                <button type="button" @click="createRecord()" class="bg-pink-600 text-white px-2 py-1 rounded-lg text-xs hover:bg-pink-700 shrink-0">开始</button>
+                <input type="text" x-model="newNote" class="flex-1 min-w-0 border border-gray-200 dark:border-gray-700 bg-white dark:bg-ink-800 text-gray-700 dark:text-gray-200 rounded-xl px-3 py-1.5 text-xs focus:ring-2 focus:ring-rose-500 focus:border-transparent transition-all" placeholder="备注（可选）">
+                <button type="button" @click="createRecord()" class="btn-primary text-white px-4 py-1.5 rounded-xl text-xs font-medium shrink-0">开始</button>
             </div>
         </div>
 
-        <!-- Daily log -->
-        <div class="border-t border-gray-200 dark:border-gray-600 pt-3">
-            <div class="mb-2">
-                <label class="text-xs text-gray-500 dark:text-gray-400 mr-2">经量</label>
+        <div class="border-t border-rose-100 dark:border-rose-900/30 pt-4">
+            <div class="mb-3">
+                <label class="text-xs text-gray-500 dark:text-gray-400 mr-3 font-medium">经量</label>
                 <div class="inline-flex gap-1.5">
                     <template x-for="(label, level) in flowLevels" :key="level">
                         <button type="button" @click="setFlowLevel(level)"
-                            class="px-2 py-0.5 rounded text-xs border transition-all"
+                            class="px-3 py-1 rounded-full text-xs font-medium border transition-all"
                             :class="dailyLog.flow_level == level
-                                ? 'border-pink-500 bg-pink-50 dark:bg-pink-900/30 text-pink-700 dark:text-pink-300'
-                                : 'border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:border-gray-300'"
+                                ? 'border-rose-400 bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 shadow-sm'
+                                : 'border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600'"
                             x-text="label"></button>
                     </template>
                 </div>
             </div>
-            <div class="mb-2">
-                <label class="text-xs text-gray-500 dark:text-gray-400 block mb-1">症状</label>
-                <div class="flex flex-wrap gap-1">
+            <div class="mb-3">
+                <label class="text-xs text-gray-500 dark:text-gray-400 block mb-2 font-medium">症状</label>
+                <div class="flex flex-wrap gap-1.5">
                     <template x-for="s in symptomOptions" :key="s">
                         <button type="button" @click="toggleSymptom(s)"
-                            class="px-1.5 py-0.5 rounded-full text-xs border transition-all"
+                            class="px-2.5 py-1 rounded-full text-xs font-medium border transition-all"
                             :class="dailyLog.symptoms.includes(s)
-                                ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300'
-                                : 'border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:border-gray-300'"
+                                ? 'border-mauve-300 bg-mauve-50 dark:bg-mauve-900/30 text-mauve-500 dark:text-mauve-400 shadow-sm'
+                                : 'border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600'"
                             x-text="s"></button>
                     </template>
                 </div>
             </div>
-            <div class="flex items-center gap-3 mb-2">
-                <div class="flex items-center gap-1">
-                    <label class="text-xs text-gray-500 dark:text-gray-400">体重</label>
+            <div class="flex items-center gap-4 mb-3">
+                <div class="flex items-center gap-2">
+                    <label class="text-xs text-gray-500 dark:text-gray-400 font-medium">体重</label>
                     <input type="number" step="0.1" min="0" max="500" x-model.number="dailyLog.weight" @blur="saveDailyLog()"
-                        class="w-16 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded px-1.5 py-0.5 text-xs"
+                        class="w-20 border border-gray-200 dark:border-gray-700 bg-white dark:bg-ink-800 text-gray-700 dark:text-gray-200 rounded-xl px-2.5 py-1 text-xs focus:ring-2 focus:ring-rose-500 focus:border-transparent transition-all"
                         placeholder="kg">
                 </div>
-                <div class="flex items-center gap-1">
-                    <label class="text-xs text-gray-500 dark:text-gray-400">体温</label>
+                <div class="flex items-center gap-2">
+                    <label class="text-xs text-gray-500 dark:text-gray-400 font-medium">体温</label>
                     <input type="number" step="0.1" min="30" max="45" x-model.number="dailyLog.temperature" @blur="saveDailyLog()"
-                        class="w-16 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded px-1.5 py-0.5 text-xs"
+                        class="w-20 border border-gray-200 dark:border-gray-700 bg-white dark:bg-ink-800 text-gray-700 dark:text-gray-200 rounded-xl px-2.5 py-1 text-xs focus:ring-2 focus:ring-rose-500 focus:border-transparent transition-all"
                         placeholder="°C">
                 </div>
             </div>
             <div class="flex items-center gap-2">
-                <button @click="saveDailyLog()" class="bg-pink-600 text-white px-3 py-1 rounded-lg text-xs hover:bg-pink-700 transition"
-                    :disabled="dailyLogSaving" x-text="dailyLogSaving ? '...' : '保存'"></button>
-                <span x-show="dailyLogSaved" class="text-xs text-green-600 dark:text-green-400">已保存</span>
+                <button @click="saveDailyLog()" class="btn-primary text-white px-4 py-1.5 rounded-xl text-xs font-medium transition-all"
+                    :disabled="dailyLogSaving" x-text="dailyLogSaving ? '保存中...' : '保存记录'"></button>
+                <span x-show="dailyLogSaved" class="text-xs text-emerald-500 dark:text-emerald-400 font-medium">✓ 已保存</span>
             </div>
         </div>
     </div>
 </div>
 
 <script>
-const PERSON_COLORS = ['#ef4444','#3b82f6','#10b981','#f59e0b','#8b5cf6','#ec4899','#14b8a6','#f97316'];
+const PERSON_COLORS = ['#ec4899','#8b5cf6','#3b82f6','#10b981','#f59e0b','#ef4444','#14b8a6','#f97316'];
 
 function calendar() {
     return {
@@ -211,7 +216,7 @@ function calendar() {
         togglePerson(pid) {
             const idx = this.activePersons.indexOf(pid);
             if (idx >= 0) this.activePersons.splice(idx, 1);
-            else this.activePersons.push(pid);
+            else this.activePersons.push(p);
             this.loadData();
         },
 
@@ -272,17 +277,44 @@ function calendar() {
             this.newNote = '';
             this.loadDailyLog();
 
-            // Position popup near clicked cell
-            const rect = event.target.closest('.cal-cell').getBoundingClientRect();
-            let top = rect.bottom + 8;
-            let left = rect.left;
-            // Keep within viewport
-            if (left + 320 > window.innerWidth) left = window.innerWidth - 330;
-            if (left < 10) left = 10;
-            if (top + 400 > window.innerHeight) top = rect.top - 408;
-            if (top < 10) top = 10;
-            this.popupStyle = 'top:' + top + 'px;left:' + left + 'px';
+            const isMobile = window.innerWidth < 640;
+            const clickX = event.clientX;
+            const clickY = event.clientY;
+
             this.showPopup = true;
+
+            this.$nextTick(() => {
+                requestAnimationFrame(() => {
+                    const popup = document.getElementById('dayPopup');
+                    if (!popup) return;
+
+                    const pw = popup.offsetWidth || 340;
+                    const ph = popup.offsetHeight || 200;
+                    const m = 8;
+
+                    let left, top;
+
+                    if (isMobile) {
+                        left = (window.innerWidth - pw) / 2;
+                        top = (window.innerHeight - ph) / 2;
+                    } else {
+                        left = clickX + m;
+                        top = clickY + m;
+
+                        if (left + pw > window.innerWidth - m) {
+                            left = clickX - pw - m;
+                        }
+                        if (top + ph > window.innerHeight - m) {
+                            top = clickY - ph - m;
+                        }
+                    }
+
+                    left = Math.max(m, Math.min(left, window.innerWidth - pw - m));
+                    top = Math.max(m, Math.min(top, window.innerHeight - ph - m));
+
+                    popup.setAttribute('style', 'left:' + left + 'px;top:' + top + 'px;position:fixed;z-index:50;');
+                });
+            });
         },
 
         closePopup() { this.showPopup = false; },
@@ -342,7 +374,7 @@ function calendar() {
         },
 
         async deleteRecord(id) {
-            if (!confirm('删除？')) return;
+            if (!confirm('确定删除这条记录？')) return;
             const formData = new URLSearchParams();
             formData.append('id', id);
             try {
