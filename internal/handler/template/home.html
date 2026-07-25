@@ -8,7 +8,7 @@
     .cal-bar-single { border-radius: 5px; left: 3px; right: 3px; }
     .popup-overlay { position: fixed; inset: 0; z-index: 40; }
     .day-popup { position: fixed; z-index: 50; width: 340px; max-height: 85vh; overflow-y: auto;
-                 border-radius: 20px; }
+                 border-radius: 20px; left: 0; top: 0; }
     @media (max-width: 640px) {
         .day-popup { width: calc(100vw - 1.5rem); }
     }
@@ -281,29 +281,33 @@ function calendar() {
             if (!cell) return;
             const rect = cell.getBoundingClientRect();
 
-            const isMobile = window.innerWidth < 640;
-            const pw = isMobile ? window.innerWidth - 24 : 340;
-            const ph = Math.min(520, window.innerHeight * 0.85);
-            const m = 8;
-
-            let top = rect.bottom + m;
-            let left = isMobile ? (window.innerWidth - pw) / 2 : rect.left;
-
-            if (!isMobile && left + pw > window.innerWidth - m) {
-                left = rect.right - pw;
-            }
-            if (top + ph > window.innerHeight - m) {
-                top = rect.top - ph - m;
-            }
-
-            left = Math.max(m, Math.min(left, window.innerWidth - pw - m));
-            top = Math.max(m, Math.min(top, window.innerHeight - ph - m));
-
-            this.popupStyle = 'left:' + left + 'px;top:' + top + 'px;';
             this.showPopup = true;
 
             this.$nextTick(() => {
-                this.popupStyle = 'left:' + left + 'px;top:' + top + 'px;';
+                const popup = this.$refs.popup;
+                if (!popup) return;
+
+                const isMobile = window.innerWidth < 640;
+                const pw = popup.offsetWidth;
+                const ph = popup.offsetHeight;
+                const m = 8;
+
+                let top = rect.bottom + m;
+                let left = isMobile ? (window.innerWidth - pw) / 2 : rect.left;
+
+                if (!isMobile && left + pw > window.innerWidth - m) {
+                    left = rect.right - pw;
+                }
+                if (top + ph > window.innerHeight - m) {
+                    top = rect.top - ph - m;
+                }
+
+                left = Math.max(m, Math.min(left, window.innerWidth - pw - m));
+                top = Math.max(m, Math.min(top, window.innerHeight - ph - m));
+
+                popup.style.left = left + 'px';
+                popup.style.top = top + 'px';
+                popup.style.border = '2px solid red';
             });
         },
 
