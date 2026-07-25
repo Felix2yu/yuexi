@@ -14,7 +14,7 @@
     }
 </style>
 
-<div x-data="calendar()" x-init="init()" @click.self="closePopup()" class="animate-fade-in-up">
+<div x-data="calendar()" x-init="init()" @click.self="closePopup()">
 
     <div x-show="familyMode" class="mb-5 flex flex-wrap items-center gap-3 animate-fade-in-up animate-delay-100">
         <span class="text-sm text-gray-600 dark:text-gray-400 font-medium font-serif-cn">人员：</span>
@@ -284,34 +284,36 @@ function calendar() {
             this.showPopup = true;
 
             this.$nextTick(() => {
-                const popup = document.getElementById('dayPopup');
-                if (!popup) return;
+                requestAnimationFrame(() => {
+                    const popup = document.getElementById('dayPopup');
+                    if (!popup) return;
 
-                const pw = popup.offsetWidth;
-                const ph = popup.offsetHeight;
-                const m = 8;
+                    const pw = popup.offsetWidth || 340;
+                    const ph = popup.offsetHeight || 200;
+                    const m = 8;
 
-                let left, top;
+                    let left, top;
 
-                if (isMobile) {
-                    left = (window.innerWidth - pw) / 2;
-                    top = (window.innerHeight - ph) / 2;
-                } else {
-                    left = clickX + m;
-                    top = clickY + m;
+                    if (isMobile) {
+                        left = (window.innerWidth - pw) / 2;
+                        top = (window.innerHeight - ph) / 2;
+                    } else {
+                        left = clickX + m;
+                        top = clickY + m;
 
-                    if (left + pw > window.innerWidth - m) {
-                        left = clickX - pw - m;
+                        if (left + pw > window.innerWidth - m) {
+                            left = clickX - pw - m;
+                        }
+                        if (top + ph > window.innerHeight - m) {
+                            top = clickY - ph - m;
+                        }
                     }
-                    if (top + ph > window.innerHeight - m) {
-                        top = clickY - ph - m;
-                    }
-                }
 
-                left = Math.max(m, Math.min(left, window.innerWidth - pw - m));
-                top = Math.max(m, Math.min(top, window.innerHeight - ph - m));
+                    left = Math.max(m, Math.min(left, window.innerWidth - pw - m));
+                    top = Math.max(m, Math.min(top, window.innerHeight - ph - m));
 
-                popup.setAttribute('style', 'left:' + left + 'px;top:' + top + 'px;position:fixed;z-index:50;');
+                    popup.setAttribute('style', 'left:' + left + 'px;top:' + top + 'px;position:fixed;z-index:50;');
+                });
             });
         },
 
