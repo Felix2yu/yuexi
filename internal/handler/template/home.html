@@ -277,36 +277,42 @@ function calendar() {
             this.newNote = '';
             this.loadDailyLog();
 
-            const cell = event.target.closest('.cal-cell');
-            if (!cell) return;
-            const rect = cell.getBoundingClientRect();
+            const isMobile = window.innerWidth < 640;
+            const clickX = event.clientX;
+            const clickY = event.clientY;
 
             this.showPopup = true;
 
-            setTimeout(() => {
+            this.$nextTick(() => {
                 const popup = document.getElementById('dayPopup');
                 if (!popup) return;
 
-                const isMobile = window.innerWidth < 640;
                 const pw = popup.offsetWidth;
                 const ph = popup.offsetHeight;
                 const m = 8;
 
-                let top = rect.bottom + m;
-                let left = isMobile ? (window.innerWidth - pw) / 2 : rect.left;
+                let left, top;
 
-                if (!isMobile && left + pw > window.innerWidth - m) {
-                    left = rect.right - pw;
-                }
-                if (top + ph > window.innerHeight - m) {
-                    top = rect.top - ph - m;
+                if (isMobile) {
+                    left = (window.innerWidth - pw) / 2;
+                    top = (window.innerHeight - ph) / 2;
+                } else {
+                    left = clickX + m;
+                    top = clickY + m;
+
+                    if (left + pw > window.innerWidth - m) {
+                        left = clickX - pw - m;
+                    }
+                    if (top + ph > window.innerHeight - m) {
+                        top = clickY - ph - m;
+                    }
                 }
 
                 left = Math.max(m, Math.min(left, window.innerWidth - pw - m));
                 top = Math.max(m, Math.min(top, window.innerHeight - ph - m));
 
                 popup.setAttribute('style', 'left:' + left + 'px;top:' + top + 'px;position:fixed;z-index:50;');
-            }, 0);
+            });
         },
 
         closePopup() { this.showPopup = false; },
