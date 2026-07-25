@@ -8,9 +8,11 @@
     .cal-bar-single { border-radius: 5px; left: 3px; right: 3px; }
     .popup-overlay { position: fixed; inset: 0; z-index: 40; }
     .day-popup { position: fixed; z-index: 50; width: min(340px, calc(100vw - 1rem)); max-height: 85vh; overflow-y: auto;
-                 border-radius: 20px; will-change: transform, opacity; }
+                 border-radius: 20px; will-change: transform, opacity; top: 0; left: 0; visibility: hidden; }
+    .day-popup[x-show="true"],
+    [x-data] .day-popup { visibility: visible; }
     @media (max-width: 640px) {
-        .day-popup { width: calc(100vw - 1rem); left: 0.5rem !important; }
+        .day-popup { width: calc(100vw - 1rem); }
     }
 </style>
 
@@ -83,8 +85,8 @@
     </div>
 
     <div x-show="showPopup" x-cloak class="popup-overlay bg-black/20 backdrop-blur-sm" @click="closePopup()"></div>
-    <div x-show="showPopup" x-cloak class="day-popup glass-card shadow-soft border border-white/50 dark:border-white/10 p-5"
-         :style="popupStyle" @click.stop
+    <div id="dayPopup" x-show="showPopup" x-cloak class="day-popup glass-card shadow-soft border border-white/50 dark:border-white/10 p-5"
+         @click.stop
          x-transition:enter="transition ease-out duration-200"
          x-transition:enter-start="opacity-0 scale-95"
          x-transition:enter-end="opacity-100 scale-100"
@@ -283,30 +285,40 @@ function calendar() {
             this.newNote = '';
             this.loadDailyLog();
 
-            const isMobile = window.innerWidth < 640;
-            const popupW = isMobile ? window.innerWidth - 16 : 340;
-            const popupH = Math.min(window.innerHeight * 0.85, 520);
-            const padding = 8;
+            const cell = event.target.closest('.cal-cell');
+            if (!cell) return;
+            const rect = cell.getBoundingClientRect();
 
-            let top = event.clientY + 12;
-            let left = event.clientX + 12;
-
-            if (isMobile) {
-                left = 8;
-            } else {
-                if (left + popupW > window.innerWidth - padding) {
-                    left = event.clientX - popupW - 12;
-                }
-                if (left < padding) left = padding;
-            }
-
-            if (top + popupH > window.innerHeight - padding) {
-                top = event.clientY - popupH - 12;
-            }
-            if (top < padding) top = padding;
-
-            this.popupStyle = 'top:' + Math.round(top) + 'px;left:' + Math.round(left) + 'px;';
             this.showPopup = true;
+
+            this.$nextTick(() => {
+                const popup = document.getElementById('dayPopup');
+                if (!popup) return;
+                const isMobile = window.innerWidth < 640;
+                const pw = popup.offsetWidth;
+                const ph = popup.offsetHeight;
+                const margin = 8;
+
+                let top = rect.bottom + margin;
+                let left = rect.left;
+
+                if (isMobile) {
+                    left = margin;
+                } else {
+                    if (left + pw > window.innerWidth - margin) {
+                        left = rect.right - pw;
+                    }
+                    if (left < margin) left = margin;
+                }
+
+                if (top + ph > window.innerHeight - margin) {
+                    top = rect.top - ph - margin;
+                }
+                if (top < margin) top = margin;
+
+                popup.style.left = left + 'px';
+                popup.style.top = top + 'px';
+            });
         },
 
         closePopup() { this.showPopup = false; },
