@@ -83,8 +83,8 @@
     </div>
 
     <div x-show="showPopup" x-cloak class="popup-overlay bg-black/20 backdrop-blur-sm" @click="closePopup()"></div>
-    <div x-ref="popup" x-show="showPopup" x-cloak class="day-popup glass-card shadow-soft border border-white/50 dark:border-white/10 p-5"
-         :style="popupStyle" @click.stop>
+    <div id="dayPopup" x-show="showPopup" x-cloak class="day-popup glass-card shadow-soft border border-white/50 dark:border-white/10 p-5"
+         @click.stop>
         <div class="flex items-center justify-between mb-4">
             <div>
                 <h3 class="font-display font-semibold text-gray-800 dark:text-gray-100 text-lg" x-text="selectedDay ? selectedDay.fullDate : ''"></h3>
@@ -283,8 +283,8 @@ function calendar() {
 
             this.showPopup = true;
 
-            this.$nextTick(() => {
-                const popup = this.$refs.popup;
+            setTimeout(() => {
+                const popup = document.getElementById('dayPopup');
                 if (!popup) return;
 
                 const isMobile = window.innerWidth < 640;
@@ -305,10 +305,8 @@ function calendar() {
                 left = Math.max(m, Math.min(left, window.innerWidth - pw - m));
                 top = Math.max(m, Math.min(top, window.innerHeight - ph - m));
 
-                popup.style.left = left + 'px';
-                popup.style.top = top + 'px';
-                popup.style.border = '2px solid red';
-            });
+                popup.setAttribute('style', 'left:' + left + 'px;top:' + top + 'px;position:fixed;z-index:50;');
+            }, 0);
         },
 
         closePopup() { this.showPopup = false; },
