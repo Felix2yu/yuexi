@@ -283,27 +283,29 @@ function calendar() {
             this.newNote = '';
             this.loadDailyLog();
 
-            const cell = event.target.closest('.cal-cell');
-            if (!cell) return;
-            const rect = cell.getBoundingClientRect();
-            const popupW = window.innerWidth < 640 ? window.innerWidth - 16 : 340;
+            const isMobile = window.innerWidth < 640;
+            const popupW = isMobile ? window.innerWidth - 16 : 340;
             const popupH = Math.min(window.innerHeight * 0.85, 520);
-            const gap = 8;
+            const padding = 8;
 
-            let top = rect.bottom + gap;
-            let left = rect.left;
+            let top = event.clientY + 12;
+            let left = event.clientX + 12;
 
-            if (left + popupW > window.innerWidth - 8) {
-                left = window.innerWidth - popupW - 8;
+            if (isMobile) {
+                left = 8;
+            } else {
+                if (left + popupW > window.innerWidth - padding) {
+                    left = event.clientX - popupW - 12;
+                }
+                if (left < padding) left = padding;
             }
-            if (left < 8) left = 8;
 
-            if (top + popupH > window.innerHeight - 8) {
-                top = rect.top - popupH - gap;
+            if (top + popupH > window.innerHeight - padding) {
+                top = event.clientY - popupH - 12;
             }
-            if (top < 8) top = 8;
+            if (top < padding) top = padding;
 
-            this.popupStyle = 'top:' + top + 'px;left:' + left + 'px;';
+            this.popupStyle = 'top:' + Math.round(top) + 'px;left:' + Math.round(left) + 'px;';
             this.showPopup = true;
         },
 
