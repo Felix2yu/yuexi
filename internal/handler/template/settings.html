@@ -1,57 +1,71 @@
 {{define "content"}}
-<div x-data="settings()" x-init="init()" class="max-w-2xl mx-auto">
-    <h1 class="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-6">设置</h1>
+<div x-data="settings()" x-init="init()" class="max-w-2xl mx-auto animate-fade-in-up">
+    <div class="mb-6">
+        <h1 class="text-2xl font-display font-semibold text-gray-800 dark:text-gray-100">设置</h1>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">个性化你的体验</p>
+    </div>
 
-    <!-- Theme -->
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
-        <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">外观</h2>
-        <div class="flex gap-3">
+    <div class="glass-card rounded-2xl shadow-soft p-6 mb-5 animate-fade-in-up animate-delay-100">
+        <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4 font-serif-cn">外观主题</h2>
+        <div class="grid grid-cols-3 gap-3">
             <template x-for="opt in themeOptions" :key="opt.value">
                 <button type="button" @click="setTheme(opt.value)"
-                    class="flex-1 py-3 px-4 rounded-lg border-2 text-sm font-medium transition-all text-center"
+                    class="py-4 px-3 rounded-xl border-2 text-sm font-medium transition-all text-center"
                     :class="theme === opt.value
-                        ? 'border-pink-500 bg-pink-50 dark:bg-pink-900/30 text-pink-700 dark:text-pink-300'
-                        : 'border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-500'">
-                    <div x-text="opt.icon" class="text-lg mb-1"></div>
-                    <div x-text="opt.label"></div>
+                        ? 'border-rose-400 bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 shadow-sm'
+                        : 'border-gray-200 dark:border-gray-700 bg-white/50 dark:bg-ink-800/50 text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600'">
+                    <div x-text="opt.icon" class="text-xl mb-1.5"></div>
+                    <div x-text="opt.label" class="text-xs"></div>
                 </button>
             </template>
         </div>
     </div>
 
-    <!-- Family mode -->
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
-        <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">模式</h2>
-        <label class="flex items-center gap-3 cursor-pointer">
-            <input type="checkbox" x-model="familyMode" @change="save()" class="w-4 h-4 rounded text-pink-600 focus:ring-pink-500">
-            <div>
-                <div class="text-sm font-medium text-gray-800 dark:text-gray-200">家庭模式</div>
-                <div class="text-xs text-gray-500 dark:text-gray-400">开启后可记录多人的月经数据，导航栏显示「人员管理」</div>
+    <div class="glass-card rounded-2xl shadow-soft p-6 mb-5 animate-fade-in-up animate-delay-100">
+        <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4 font-serif-cn">使用模式</h2>
+        <label class="flex items-start gap-3 cursor-pointer p-3 rounded-xl hover:bg-rose-50/50 dark:hover:bg-rose-900/10 transition-colors">
+            <input type="checkbox" x-model="familyMode" @change="save()" class="w-4 h-4 mt-0.5 rounded text-rose-500 focus:ring-rose-500">
+            <div class="flex-1">
+                <div class="text-sm font-medium text-gray-700 dark:text-gray-200">家庭模式</div>
+                <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">开启后可记录多人的月经数据，导航栏显示「人员管理」</div>
+            </div>
+            <div class="w-10 h-6 rounded-full transition-colors"
+                 :class="familyMode ? 'bg-rose-500' : 'bg-gray-300 dark:bg-gray-600'">
+                <div class="w-5 h-5 bg-white rounded-full shadow transition-transform mt-0.5"
+                     :class="familyMode ? 'translate-x-4' : 'translate-x-0.5'"></div>
             </div>
         </label>
     </div>
 
-    <!-- Display settings -->
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
-        <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">显示设置</h2>
-        <label class="flex items-center gap-3 cursor-pointer">
-            <input type="checkbox" x-model="showOvulation" @change="save()" class="w-4 h-4 rounded text-pink-600 focus:ring-pink-500">
-            <div>
-                <div class="text-sm font-medium text-gray-800 dark:text-gray-200">显示排卵日</div>
-                <div class="text-xs text-gray-500 dark:text-gray-400">在日历上显示排卵日标记</div>
+    <div class="glass-card rounded-2xl shadow-soft p-6 mb-5 animate-fade-in-up animate-delay-200">
+        <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4 font-serif-cn">显示选项</h2>
+        <label class="flex items-center gap-3 cursor-pointer p-3 rounded-xl hover:bg-rose-50/50 dark:hover:bg-rose-900/10 transition-colors">
+            <input type="checkbox" x-model="showOvulation" @change="save()" class="w-4 h-4 rounded text-rose-500 focus:ring-rose-500">
+            <div class="flex-1">
+                <div class="text-sm font-medium text-gray-700 dark:text-gray-200">显示排卵日</div>
+                <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">在日历上显示排卵日标记</div>
             </div>
         </label>
     </div>
 
-    <!-- Account settings -->
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
-        <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">账户设置</h2>
-        <a href="/settings/password" class="text-sm text-pink-600 dark:text-pink-400 hover:text-pink-800 dark:hover:text-pink-300">修改密码</a>
+    <div class="glass-card rounded-2xl shadow-soft p-6 mb-5 animate-fade-in-up animate-delay-200">
+        <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4 font-serif-cn">账户安全</h2>
+        <a href="/settings/password" class="flex items-center justify-between p-3 rounded-xl hover:bg-rose-50/50 dark:hover:bg-rose-900/10 transition-colors">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center">
+                    <svg class="w-4 h-4 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                </div>
+                <div>
+                    <div class="text-sm font-medium text-gray-700 dark:text-gray-200">修改密码</div>
+                    <div class="text-xs text-gray-500 dark:text-gray-400">更新你的登录密码</div>
+                </div>
+            </div>
+            <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+        </a>
     </div>
 
-    <!-- Cycle anomaly detection -->
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
-        <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">周期健康检测</h2>
+    <div class="glass-card rounded-2xl shadow-soft p-6 mb-5 animate-fade-in-up animate-delay-200">
+        <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4 font-serif-cn">周期健康检测</h2>
         <div x-data="{ anomalies: [], loading: true }" x-init="
             try {
                 const resp = await fetch('/api/anomaly');
@@ -59,34 +73,44 @@
             } catch(e) {}
             loading = false;
         ">
-            <div x-show="loading" class="text-sm text-gray-500 dark:text-gray-400">检测中...</div>
-            <div x-show="!loading && anomalies.length === 0" class="text-sm text-green-600 dark:text-green-400">
-                周期数据正常，未检测到异常
+            <div x-show="loading" class="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2">
+                <svg class="w-4 h-4 animate-spin text-rose-400" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                检测中...
+            </div>
+            <div x-show="!loading && anomalies.length === 0" class="flex items-center gap-3 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-900/20">
+                <div class="w-9 h-9 rounded-xl bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center shrink-0">
+                    <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                </div>
+                <span class="text-sm text-emerald-600 dark:text-emerald-400 font-medium">周期数据正常，未检测到异常</span>
             </div>
             <div x-show="!loading && anomalies.length > 0" class="space-y-2">
                 <template x-for="a in anomalies" :key="a.type">
-                    <div class="flex items-start gap-2 p-2 rounded-lg"
+                    <div class="flex items-start gap-3 p-3 rounded-xl"
                          :class="a.severity === 'warning' ? 'bg-yellow-50 dark:bg-yellow-900/20' : 'bg-blue-50 dark:bg-blue-900/20'">
-                        <span class="text-sm" :class="a.severity === 'warning' ? 'text-yellow-600 dark:text-yellow-400' : 'text-blue-600 dark:text-blue-400'">⚠</span>
-                        <span class="text-sm" :class="a.severity === 'warning' ? 'text-yellow-700 dark:text-yellow-300' : 'text-blue-700 dark:text-blue-300'" x-text="a.description"></span>
+                        <div class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+                             :class="a.severity === 'warning' ? 'bg-yellow-100 dark:bg-yellow-900/30' : 'bg-blue-100 dark:bg-blue-900/30'">
+                            <svg class="w-4 h-4"
+                                 :class="a.severity === 'warning' ? 'text-yellow-500' : 'text-blue-500'" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                        </div>
+                        <span class="text-sm"
+                              :class="a.severity === 'warning' ? 'text-yellow-700 dark:text-yellow-300' : 'text-blue-700 dark:text-blue-300'" x-text="a.description"></span>
                     </div>
                 </template>
             </div>
         </div>
     </div>
 
-    <!-- Person colors (family mode only) -->
-    <div x-show="familyMode" class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
-        <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">人员颜色</h2>
+    <div x-show="familyMode" class="glass-card rounded-2xl shadow-soft p-6 mb-5 animate-fade-in-up animate-delay-300">
+        <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4 font-serif-cn">人员颜色</h2>
         <div class="space-y-4">
             {{range $i, $p := .Persons}}
             <div class="flex items-center gap-4">
-                <span class="text-sm text-gray-700 dark:text-gray-300 w-20">{{$p.Name}}</span>
-                <div class="flex gap-2">
+                <span class="text-sm text-gray-600 dark:text-gray-400 w-20 font-medium">{{$p.Name}}</span>
+                <div class="flex gap-2 flex-wrap">
                     <template x-for="(c, idx) in colorOptions" :key="idx">
                         <button type="button" class="w-7 h-7 rounded-full border-2 transition-all hover:scale-110"
                                 :style="'background-color:' + c"
-                                :class="personColors[{{$p.ID}}] === c ? 'border-gray-800 dark:border-white ring-2 ring-gray-300 dark:ring-gray-500' : 'border-gray-200 dark:border-gray-600'"
+                                :class="personColors[{{$p.ID}}] === c ? 'border-gray-800 dark:border-white ring-2 ring-gray-300 dark:ring-gray-500 scale-110' : 'border-gray-200 dark:border-gray-600'"
                                 @click="setColor({{$p.ID}}, c)">
                         </button>
                     </template>
@@ -96,59 +120,65 @@
         </div>
     </div>
 
-    <!-- Notification settings -->
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
-        <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">通知提醒</h2>
+    <div class="glass-card rounded-2xl shadow-soft p-6 mb-5 animate-fade-in-up animate-delay-300">
+        <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4 font-serif-cn">通知提醒</h2>
 
-        <label class="flex items-center gap-3 cursor-pointer mb-4">
-            <input type="checkbox" x-model="notifyEnabled" @change="saveNotify()" class="w-4 h-4 rounded text-pink-600 focus:ring-pink-500">
-            <div>
-                <div class="text-sm font-medium text-gray-800 dark:text-gray-200">启用通知</div>
-                <div class="text-xs text-gray-500 dark:text-gray-400">在月经到来前发送提醒</div>
+        <label class="flex items-start gap-3 cursor-pointer p-3 rounded-xl hover:bg-rose-50/50 dark:hover:bg-rose-900/10 transition-colors mb-3">
+            <input type="checkbox" x-model="notifyEnabled" @change="saveNotify()" class="w-4 h-4 mt-0.5 rounded text-rose-500 focus:ring-rose-500">
+            <div class="flex-1">
+                <div class="text-sm font-medium text-gray-700 dark:text-gray-200">启用通知</div>
+                <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">在月经到来前发送提醒</div>
+            </div>
+            <div class="w-10 h-6 rounded-full transition-colors"
+                 :class="notifyEnabled ? 'bg-rose-500' : 'bg-gray-300 dark:bg-gray-600'">
+                <div class="w-5 h-5 bg-white rounded-full shadow transition-transform mt-0.5"
+                     :class="notifyEnabled ? 'translate-x-4' : 'translate-x-0.5'"></div>
             </div>
         </label>
 
-        <div x-show="notifyEnabled" x-cloak class="space-y-4">
+        <div x-show="notifyEnabled" x-cloak class="space-y-4 pt-2">
             <div>
-                <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">Shoutrrr 通知地址</label>
+                <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">Shoutrrr 通知地址</label>
                 <input type="text" x-model="notifyURL" @blur="saveNotify()"
-                    class="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg px-3 py-1.5 text-sm w-full focus:ring-2 focus:ring-pink-500 font-mono"
+                    class="border border-gray-200 dark:border-gray-700 bg-white dark:bg-ink-800 text-gray-700 dark:text-gray-200 rounded-xl px-3 py-2.5 text-sm w-full focus:ring-2 focus:ring-rose-500 focus:border-transparent transition-all font-mono"
                     placeholder="如 telegram://token@telegram?chats=chat_id">
-                <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                <p class="text-xs text-gray-400 dark:text-gray-500 mt-1.5">
                     支持 Telegram、Discord、Slack、邮件等，参考
-                    <a href="https://containrrr.dev/shoutrrr/0.8/overview/" target="_blank" class="text-pink-500 hover:underline">Shoutrrr 文档</a>
+                    <a href="https://containrrr.dev/shoutrrr/0.8/overview/" target="_blank" class="text-rose-500 hover:underline">Shoutrrr 文档</a>
                 </p>
             </div>
 
             <div>
-                <label class="block text-xs text-gray-500 dark:text-gray-400 mb-1">提前提醒天数</label>
-                <input type="number" x-model.number="notifyDaysBefore" @change="saveNotify()"
-                    min="1" max="14"
-                    class="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg px-3 py-1.5 text-sm w-24 focus:ring-2 focus:ring-pink-500">
-                <span class="text-xs text-gray-500 dark:text-gray-400 ml-2">天</span>
+                <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">提前提醒天数</label>
+                <div class="flex items-center gap-2">
+                    <input type="number" x-model.number="notifyDaysBefore" @change="saveNotify()"
+                        min="1" max="14"
+                        class="w-24 border border-gray-200 dark:border-gray-700 bg-white dark:bg-ink-800 text-gray-700 dark:text-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-rose-500 focus:border-transparent transition-all">
+                    <span class="text-sm text-gray-500 dark:text-gray-400">天</span>
+                </div>
             </div>
 
             <div class="flex items-center gap-2">
                 <button type="button" @click="testNotify()"
-                    class="bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 px-3 py-1.5 rounded-lg text-sm hover:bg-gray-300 dark:hover:bg-gray-500 transition disabled:opacity-50"
+                    class="px-4 py-2 rounded-xl text-sm font-medium transition-all disabled:opacity-50"
+                    :class="notifyTesting ? 'bg-gray-200 dark:bg-gray-700 text-gray-400' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'"
                     :disabled="notifyTesting"
                     x-text="notifyTesting ? '发送中...' : '测试通知'">
                 </button>
-                <span x-show="notifyTestResult" class="text-sm"
-                      :class="notifyTestOk ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'"
+                <span x-show="notifyTestResult" class="text-sm font-medium"
+                      :class="notifyTestOk ? 'text-emerald-500 dark:text-emerald-400' : 'text-rose-500 dark:text-rose-400'"
                       x-text="notifyTestResult"></span>
             </div>
 
-            <!-- Upcoming periods -->
-            <div x-show="upcoming.length > 0" class="border-t border-gray-200 dark:border-gray-600 pt-4 mt-4">
-                <h3 class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">近期预测</h3>
-                <div class="space-y-1">
+            <div x-show="upcoming.length > 0" class="border-t border-gray-200 dark:border-gray-700 pt-4">
+                <h3 class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-3">近期预测</h3>
+                <div class="space-y-2">
                     <template x-for="u in upcoming" :key="u.name">
-                        <div class="flex items-center justify-between text-sm">
-                            <span class="text-gray-700 dark:text-gray-300" x-text="u.name"></span>
-                            <span class="text-gray-500 dark:text-gray-400">
+                        <div class="flex items-center justify-between p-2.5 rounded-xl bg-rose-50/50 dark:bg-rose-900/10">
+                            <span class="text-sm text-gray-600 dark:text-gray-300 font-medium" x-text="u.name"></span>
+                            <span class="text-sm text-gray-500 dark:text-gray-400">
                                 <span x-text="u.next_period"></span>
-                                <span class="text-xs" x-text="u.days_left === 0 ? '（今天）' : u.days_left > 0 ? '（' + u.days_left + '天后）' : ''"></span>
+                                <span class="text-xs ml-1 text-rose-500 dark:text-rose-400" x-text="u.days_left === 0 ? '（今天）' : u.days_left > 0 ? '（' + u.days_left + '天后）' : ''"></span>
                             </span>
                         </div>
                     </template>
@@ -157,11 +187,16 @@
         </div>
     </div>
 
-    <a href="/" class="text-sm text-pink-600 dark:text-pink-400 hover:text-pink-800 dark:hover:text-pink-300">返回日历</a>
+    <div class="pb-6">
+        <a href="/" class="inline-flex items-center gap-1.5 text-sm text-rose-500 dark:text-rose-400 hover:text-rose-600 dark:hover:text-rose-300 font-medium transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+            返回日历
+        </a>
+    </div>
 </div>
 
 <script>
-const COLOR_OPTIONS = ['#ef4444','#3b82f6','#10b981','#f59e0b','#8b5cf6','#ec4899','#14b8a6','#f97316','#6366f1','#84cc16','#06b6d4','#e11d48'];
+const COLOR_OPTIONS = ['#ec4899','#a855f7','#3b82f6','#10b981','#f59e0b','#ef4444','#14b8a6','#f97316','#6366f1','#84cc16','#06b6d4','#e11d48'];
 
 function settings() {
     return {
@@ -190,7 +225,6 @@ function settings() {
             this.theme = s.theme || 'system';
             this.personColors = (s.personColors) ? {...s.personColors} : {};
 
-            // Load notification config from server
             try {
                 const resp = await fetch('/api/notification/status');
                 const data = await resp.json();

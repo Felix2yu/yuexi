@@ -1,9 +1,12 @@
 {{define "content"}}
-<div x-data="stats()" x-init="init()" class="max-w-4xl mx-auto">
+<div x-data="stats()" x-init="init()" class="max-w-4xl mx-auto animate-fade-in-up">
     <div class="flex items-center justify-between mb-6">
-        <h1 class="text-lg font-semibold text-gray-800 dark:text-gray-100">统计分析</h1>
+        <div>
+            <h1 class="text-2xl font-display font-semibold text-gray-800 dark:text-gray-100">统计分析</h1>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">了解你的身体节律</p>
+        </div>
         <div x-show="persons.length > 1" class="flex items-center gap-2">
-            <select x-model="selectedPerson" @change="loadStats()" class="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg px-3 py-1.5 text-sm">
+            <select x-model="selectedPerson" @change="loadStats()" class="border border-gray-200 dark:border-gray-700 bg-white dark:bg-ink-800 text-gray-700 dark:text-gray-200 rounded-xl px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-rose-500 focus:border-transparent transition-all">
                 <template x-for="p in persons" :key="p.id">
                     <option :value="p.id" x-text="p.name"></option>
                 </template>
@@ -11,79 +14,98 @@
         </div>
     </div>
 
-    <!-- Stats cards -->
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 text-center">
-            <div class="text-2xl font-bold text-pink-600 dark:text-pink-400" x-text="statsData.avg_cycle_length || '-'"></div>
-            <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">平均周期（天）</div>
+        <div class="glass-card rounded-2xl shadow-soft p-5 text-center animate-fade-in-up animate-delay-100">
+            <div class="w-10 h-10 mx-auto mb-3 rounded-xl bg-gradient-to-br from-rose-400/20 to-rose-500/20 flex items-center justify-center">
+                <svg class="w-5 h-5 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            </div>
+            <div class="text-2xl font-bold text-gray-800 dark:text-gray-100" x-text="statsData.avg_cycle_length || '-'"></div>
+            <div class="text-xs text-gray-500 dark:text-gray-400 mt-1 font-medium">平均周期</div>
         </div>
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 text-center">
-            <div class="text-2xl font-bold text-purple-600 dark:text-purple-400" x-text="statsData.avg_period_length || '-'"></div>
-            <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">平均经期（天）</div>
+        <div class="glass-card rounded-2xl shadow-soft p-5 text-center animate-fade-in-up animate-delay-100">
+            <div class="w-10 h-10 mx-auto mb-3 rounded-xl bg-gradient-to-br from-mauve-400/20 to-mauve-500/20 flex items-center justify-center">
+                <svg class="w-5 h-5 text-mauve-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
+            </div>
+            <div class="text-2xl font-bold text-gray-800 dark:text-gray-100" x-text="statsData.avg_period_length || '-'"></div>
+            <div class="text-xs text-gray-500 dark:text-gray-400 mt-1 font-medium">平均经期</div>
         </div>
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 text-center">
-            <div class="text-2xl font-bold text-blue-600 dark:text-blue-400">
+        <div class="glass-card rounded-2xl shadow-soft p-5 text-center animate-fade-in-up animate-delay-200">
+            <div class="w-10 h-10 mx-auto mb-3 rounded-xl bg-gradient-to-br from-blue-400/20 to-blue-500/20 flex items-center justify-center">
+                <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/></svg>
+            </div>
+            <div class="text-xl font-bold text-gray-800 dark:text-gray-100">
                 <span x-text="statsData.min_cycle_length || '-'"></span>
-                <span class="text-sm font-normal text-gray-400">~</span>
+                <span class="text-sm font-normal text-gray-400 mx-1">~</span>
                 <span x-text="statsData.max_cycle_length || '-'"></span>
             </div>
-            <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">周期范围（天）</div>
+            <div class="text-xs text-gray-500 dark:text-gray-400 mt-1 font-medium">周期范围</div>
         </div>
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 text-center">
-            <div class="text-lg font-bold" :class="{
-                'text-green-600 dark:text-green-400': statsData.regularity === '非常规律',
-                'text-emerald-600 dark:text-emerald-400': statsData.regularity === '较为规律',
-                'text-yellow-600 dark:text-yellow-400': statsData.regularity === '略有波动',
-                'text-red-600 dark:text-red-400': statsData.regularity === '波动较大',
-            }" x-text="statsData.regularity || '暂无数据'"></div>
-            <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">规律性评估</div>
+        <div class="glass-card rounded-2xl shadow-soft p-5 text-center animate-fade-in-up animate-delay-200">
+            <div class="w-10 h-10 mx-auto mb-3 rounded-xl flex items-center justify-center"
+                 :class="{
+                    'bg-gradient-to-br from-emerald-400/20 to-emerald-500/20': statsData.regularity === '非常规律' || statsData.regularity === '较为规律',
+                    'bg-gradient-to-br from-yellow-400/20 to-yellow-500/20': statsData.regularity === '略有波动',
+                    'bg-gradient-to-br from-rose-400/20 to-rose-500/20': statsData.regularity === '波动较大'
+                 }">
+                <svg class="w-5 h-5"
+                     :class="{
+                        'text-emerald-500': statsData.regularity === '非常规律' || statsData.regularity === '较为规律',
+                        'text-yellow-500': statsData.regularity === '略有波动',
+                        'text-rose-500': statsData.regularity === '波动较大'
+                     }" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            </div>
+            <div class="text-lg font-bold"
+                 :class="{
+                    'text-emerald-500 dark:text-emerald-400': statsData.regularity === '非常规律',
+                    'text-emerald-500 dark:text-emerald-400': statsData.regularity === '较为规律',
+                    'text-yellow-500 dark:text-yellow-400': statsData.regularity === '略有波动',
+                    'text-rose-500 dark:text-rose-400': statsData.regularity === '波动较大',
+                }" x-text="statsData.regularity || '暂无数据'"></div>
+            <div class="text-xs text-gray-500 dark:text-gray-400 mt-1 font-medium">规律性评估</div>
         </div>
     </div>
 
-    <!-- Charts -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
-            <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">周期长度趋势</h3>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+        <div class="glass-card rounded-2xl shadow-soft p-5 animate-fade-in-up animate-delay-200">
+            <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 font-serif-cn">周期长度趋势</h3>
             <div class="relative" style="height: 200px">
                 <canvas id="cycleChart"></canvas>
             </div>
         </div>
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
-            <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">经期天数趋势</h3>
+        <div class="glass-card rounded-2xl shadow-soft p-5 animate-fade-in-up animate-delay-200">
+            <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 font-serif-cn">经期天数趋势</h3>
             <div class="relative" style="height: 200px">
                 <canvas id="periodChart"></canvas>
             </div>
         </div>
     </div>
 
-    <!-- Symptom distribution chart -->
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 mb-6" x-show="hasSymptomData">
-        <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">症状分布</h3>
+    <div class="glass-card rounded-2xl shadow-soft p-5 mb-6 animate-fade-in-up animate-delay-300" x-show="hasSymptomData">
+        <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 font-serif-cn">症状分布</h3>
         <div class="relative" style="height: 250px">
             <canvas id="symptomChart"></canvas>
         </div>
     </div>
 
-    <!-- Recent cycle history -->
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 mb-6" x-show="statsData.cycle_lengths && statsData.cycle_lengths.length > 0">
-        <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">近期周期记录</h3>
+    <div class="glass-card rounded-2xl shadow-soft p-5 mb-6 animate-fade-in-up animate-delay-300" x-show="statsData.cycle_lengths && statsData.cycle_lengths.length > 0">
+        <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 font-serif-cn">近期周期记录</h3>
         <div class="overflow-x-auto">
             <table class="w-full text-sm">
                 <thead>
-                    <tr class="text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-600">
-                        <th class="text-left py-2 font-medium">开始日期</th>
-                        <th class="text-right py-2 font-medium">周期天数</th>
+                    <tr class="text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
+                        <th class="text-left py-2.5 font-medium">开始日期</th>
+                        <th class="text-right py-2.5 font-medium">周期天数</th>
                     </tr>
                 </thead>
                 <tbody>
                     <template x-for="(cp, idx) in (statsData.cycle_lengths || []).slice().reverse()" :key="idx">
-                        <tr class="border-b border-gray-100 dark:border-gray-700">
-                            <td class="py-2 text-gray-800 dark:text-gray-200" x-text="cp.label"></td>
-                            <td class="py-2 text-right font-mono" :class="{
-                                'text-green-600 dark:text-green-400': cp.value >= 25 && cp.value <= 35,
-                                'text-yellow-600 dark:text-yellow-400': (cp.value < 25 || cp.value > 35) && cp.value >= 20 && cp.value <= 45,
-                                'text-red-600 dark:text-red-400': cp.value < 20 || cp.value > 45,
-                            }" x-text="cp.value + '天'"></td>
+                        <tr class="border-b border-gray-100 dark:border-gray-700/50 last:border-0">
+                            <td class="py-2.5 text-gray-700 dark:text-gray-200" x-text="cp.label"></td>
+                            <td class="py-2.5 text-right font-mono font-medium" :class="{
+                                'text-emerald-500 dark:text-emerald-400': cp.value >= 25 && cp.value <= 35,
+                                'text-yellow-500 dark:text-yellow-400': (cp.value < 25 || cp.value > 35) && cp.value >= 20 && cp.value <= 45,
+                                'text-rose-500 dark:text-rose-400': cp.value < 20 || cp.value > 45,
+                            }" x-text="cp.value + ' 天'"></td>
                         </tr>
                     </template>
                 </tbody>
@@ -139,7 +161,6 @@ function stats() {
                 }
             };
 
-            // Cycle chart
             const cycleData = (this.statsData.cycle_lengths || []).slice(-12);
             if (this.cycleChart) this.cycleChart.destroy();
             const ctx1 = document.getElementById('cycleChart');
@@ -151,18 +172,19 @@ function stats() {
                         datasets: [{
                             data: cycleData.map(d => d.value),
                             borderColor: '#ec4899',
-                            backgroundColor: 'rgba(236,72,153,0.1)',
+                            backgroundColor: 'rgba(236,72,153,0.12)',
                             fill: true,
-                            tension: 0.3,
+                            tension: 0.35,
                             pointRadius: 4,
-                            pointBackgroundColor: '#ec4899'
+                            pointBackgroundColor: '#ec4899',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2
                         }]
                     },
                     options: { ...chartOpts, scales: { ...chartOpts.scales, y: { ...chartOpts.scales.y, title: { display: true, text: '天', color: textColor } } } }
                 });
             }
 
-            // Period chart
             const periodData = (this.statsData.period_lengths || []).slice(-12);
             if (this.periodChart) this.periodChart.destroy();
             const ctx2 = document.getElementById('periodChart');
@@ -173,17 +195,16 @@ function stats() {
                         labels: periodData.map(d => d.label.substring(5)),
                         datasets: [{
                             data: periodData.map(d => d.value),
-                            backgroundColor: 'rgba(139,92,246,0.6)',
-                            borderColor: '#8b5cf6',
+                            backgroundColor: 'rgba(168,85,247,0.55)',
+                            borderColor: '#a855f7',
                             borderWidth: 1,
-                            borderRadius: 4
+                            borderRadius: 6
                         }]
                     },
                     options: chartOpts
                 });
             }
 
-            // Symptom chart
             const symptomCounts = this.statsData.symptom_counts || {};
             const symptomLabels = Object.keys(symptomCounts);
             const symptomValues = Object.values(symptomCounts);
@@ -191,7 +212,7 @@ function stats() {
             const ctx3 = document.getElementById('symptomChart');
             if (ctx3 && symptomLabels.length > 0) {
                 const symptomColors = [
-                    '#ec4899', '#8b5cf6', '#3b82f6', '#10b981', '#f59e0b',
+                    '#ec4899', '#a855f7', '#3b82f6', '#10b981', '#f59e0b',
                     '#ef4444', '#14b8a6', '#f97316', '#6366f1', '#84cc16'
                 ];
                 this.symptomChart = new Chart(ctx3, {
@@ -210,7 +231,7 @@ function stats() {
                         plugins: {
                             legend: {
                                 position: 'right',
-                                labels: { color: textColor, font: { size: 11 }, padding: 12 }
+                                labels: { color: textColor, font: { size: 11 }, padding: 14, usePointStyle: true }
                             }
                         }
                     }
