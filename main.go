@@ -30,6 +30,8 @@ func main() {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 
+	r.Get("/health", handler.Health)
+
 	// Auth routes (no middleware)
 	r.Get("/login", handler.LoginPage)
 	r.Post("/login", handler.LoginPost)

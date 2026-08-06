@@ -15,6 +15,12 @@ var templateFS embed.FS
 //go:embed static/*
 var staticFS embed.FS
 
+func Health(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("ok"))
+}
+
 func ServeManifest(w http.ResponseWriter, r *http.Request) {
 	data, _ := staticFS.ReadFile("static/manifest.json")
 	w.Header().Set("Content-Type", "application/manifest+json")
