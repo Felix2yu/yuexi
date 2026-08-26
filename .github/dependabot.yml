@@ -5,13 +5,8 @@ updates:
     directory: "/"
     schedule:
       interval: "daily"
-    open-pull-requests-limit: 10
-
-  # GitHub Actions 工作流
-  - package-ecosystem: "github-actions"
-    directory: "/"
-    schedule:
-      interval: "daily"
+      time: "00:00"
+      timezone: "UTC"
     open-pull-requests-limit: 10
 
   # Docker 基础镜像
@@ -19,4 +14,15 @@ updates:
     directory: "/"
     schedule:
       interval: "daily"
+      time: "00:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 10
+
+  # GitHub Actions 工作流
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "daily"
+      time: "00:00"
+      timezone: "UTC"
     open-pull-requests-limit: 10
