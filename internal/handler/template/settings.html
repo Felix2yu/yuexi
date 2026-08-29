@@ -14,7 +14,7 @@
                     :class="theme === opt.value
                         ? 'border-rose-400 bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 shadow-sm'
                         : 'border-gray-200 dark:border-gray-700 bg-white/50 dark:bg-ink-800/50 text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600'">
-                    <div x-text="opt.icon" class="text-xl mb-1.5"></div>
+                    <div x-html="opt.icon" class="mb-1.5 flex items-center justify-center"></div>
                     <div x-text="opt.label" class="text-xs"></div>
                 </button>
             </template>
@@ -206,9 +206,9 @@ function settings() {
         personColors: {},
         colorOptions: COLOR_OPTIONS,
         themeOptions: [
-            { value: 'system', label: '跟随系统', icon: '🖥' },
-            { value: 'light', label: '亮色', icon: '☀️' },
-            { value: 'dark', label: '暗色', icon: '🌙' }
+            { value: 'system', label: '跟随系统', icon: '<svg class="w-6 h-6 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>' },
+            { value: 'light', label: '亮色', icon: '<svg class="w-6 h-6 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>' },
+            { value: 'dark', label: '暗色', icon: '<svg class="w-6 h-6 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>' }
         ],
         notifyEnabled: false,
         notifyURL: '',
