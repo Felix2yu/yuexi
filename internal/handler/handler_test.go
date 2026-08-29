@@ -893,6 +893,35 @@ func TestServeSW(t *testing.T) {
 	}
 }
 
+func TestServeStatic(t *testing.T) {
+	// local CSS is served with the correct content type and cache header
+	rr := do(ServeStatic, httptest.NewRequest("GET", "/static/tailwind.css", nil))
+	if rr.Code != http.StatusOK {
+		t.Fatalf("tailwind.css code=%d", rr.Code)
+	}
+	if ct := rr.Header().Get("Content-Type"); !strings.HasPrefix(ct, "text/css") {
+		t.Errorf("tailwind.css content-type=%q", ct)
+	}
+	if !strings.Contains(rr.Header().Get("Cache-Control"), "max-age=86400") {
+		t.Errorf("tailwind.css cache-control=%q", rr.Header().Get("Cache-Control"))
+	}
+	if rr.Body.Len() == 0 {
+		t.Error("tailwind.css body should be non-empty")
+	}
+
+	// missing asset -> 404
+	rr = do(ServeStatic, httptest.NewRequest("GET", "/static/does-not-exist.js", nil))
+	if rr.Code != http.StatusNotFound {
+		t.Errorf("missing asset code=%d, want 404", rr.Code)
+	}
+
+	// path traversal is rejected
+	rr = do(ServeStatic, httptest.NewRequest("GET", "/static/../sw.js", nil))
+	if rr.Code != http.StatusNotFound {
+		t.Errorf("traversal code=%d, want 404", rr.Code)
+	}
+}
+
 func TestServeFavicon(t *testing.T) {
 	rr := do(ServeFavicon, httptest.NewRequest("GET", "/favicon.ico", nil))
 	if rr.Code != http.StatusOK || !strings.HasPrefix(rr.Header().Get("Content-Type"), "image/") {

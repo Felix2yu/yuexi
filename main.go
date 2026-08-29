@@ -72,6 +72,7 @@ func buildRouter() *chi.Mux {
 	})
 
 	// PWA static files (no auth)
+	r.Get("/static/*", handler.ServeStatic)
 	r.Get("/manifest.json", handler.ServeManifest)
 	r.Get("/sw.js", handler.ServeSW)
 	r.Get("/icon-192.png", func(w http.ResponseWriter, r *http.Request) { handler.ServeIcon(w, r, 192) })

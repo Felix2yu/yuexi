@@ -16,9 +16,7 @@
     <link rel="apple-touch-icon" href="/icon-192.png">
     <link rel="apple-touch-icon" sizes="192x192" href="/icon-192.png">
     <link rel="apple-touch-icon" sizes="512x512" href="/icon-512.png">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Noto+Serif+SC:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/tailwind.css">
     <script>
         (function() {
             try {
@@ -29,63 +27,18 @@
             } catch(e) {}
         })();
     </script>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    fontFamily: {
-                        serif: ['"Noto Serif SC"', '"Cormorant Garamond"', 'serif'],
-                        display: ['"Cormorant Garamond"', '"Noto Serif SC"', 'serif'],
-                        sans: ['Inter', '"Noto Serif SC"', 'sans-serif'],
-                    },
-                    colors: {
-                        rose: {
-                            50: '#fdf2f8',
-                            100: '#fce7f3',
-                            200: '#fbcfe8',
-                            300: '#f9a8d4',
-                            400: '#f472b6',
-                            500: '#ec4899',
-                            600: '#db2777',
-                        },
-                        mauve: {
-                            50: '#faf5ff',
-                            100: '#f3e8ff',
-                            200: '#e9d5ff',
-                            300: '#d8b4fe',
-                            400: '#c084fc',
-                            500: '#a855f7',
-                        },
-                        cream: {
-                            50: '#fefdfb',
-                            100: '#fdf8f3',
-                            200: '#f9f0e6',
-                        },
-                        ink: {
-                            900: '#1a1625',
-                            800: '#2d2640',
-                            700: '#3d3555',
-                            600: '#4e4568',
-                        }
-                    }
-                }
-            }
-        }
-    </script>
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script defer src="/static/alpine.min.js"></script>
     <style>
         [x-cloak] { display: none !important; }
         html { scroll-behavior: smooth; }
         body {
-            font-family: 'Inter', 'Noto Serif SC', sans-serif;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         }
         .font-display {
-            font-family: 'Cormorant Garamond', 'Noto Serif SC', serif;
+            font-family: ui-serif, Georgia, "Songti SC", "SimSun", "Noto Serif CJK SC", serif;
         }
         .font-serif-cn {
-            font-family: 'Noto Serif SC', serif;
+            font-family: ui-serif, Georgia, "Songti SC", "SimSun", "Noto Serif CJK SC", serif;
         }
 
         .bg-gradient-soft {

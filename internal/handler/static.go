@@ -7,7 +7,10 @@ import (
 	"image/color"
 	"image/png"
 	"math"
+	"mime"
 	"net/http"
+	"path/filepath"
+	"strings"
 	"sync"
 )
 
@@ -34,6 +37,28 @@ func ServeSW(w http.ResponseWriter, r *http.Request) {
 	data, _ := staticFS.ReadFile("static/sw.js")
 	w.Header().Set("Content-Type", "application/javascript")
 	w.Header().Set("Cache-Control", "no-cache")
+	w.Write(data)
+}
+
+// ServeStatic serves embedded build assets (CSS/JS) under /static/*. This keeps
+// third-party front-end libraries (Tailwind, Alpine, Chart.js) served from the
+// same origin instead of an external CDN, removing the render-blocking network
+// dependency and improving cache locality behind nginx.
+func ServeStatic(w http.ResponseWriter, r *http.Request) {
+	name := strings.TrimPrefix(r.URL.Path, "/static/")
+	if name == "" || strings.Contains(name, "..") {
+		http.NotFound(w, r)
+		return
+	}
+	data, err := staticFS.ReadFile("static/" + name)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	if ct := mime.TypeByExtension(filepath.Ext(name)); ct != "" {
+		w.Header().Set("Content-Type", ct)
+	}
+	w.Header().Set("Cache-Control", "public, max-age=86400")
 	w.Write(data)
 }
 

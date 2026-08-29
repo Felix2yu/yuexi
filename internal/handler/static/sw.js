@@ -1,11 +1,9 @@
-const CACHE_NAME = 'yuexi-v2';
+const CACHE_NAME = 'yuexi-v3';
 const STATIC_ASSETS = [
   '/',
   '/settings',
   '/person',
-  '/export',
-  'https://cdn.tailwindcss.com',
-  'https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js'
+  '/export'
 ];
 
 self.addEventListener('install', event => {

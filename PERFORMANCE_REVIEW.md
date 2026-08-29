@@ -215,3 +215,32 @@
 ### 未做（留待第二批/需评估）
 - F1（Tailwind 构建化）、F2（字体子集化/自托管）、F5（Alpine 自托管）、B6（列表分页）属"需重构/引入构建"项，结合 nginx 是否已有 CDN/压缩再排期。
 - 所有"预期收益"数字仍需按报告第四节方法论做实测对比（pprof / wrk / Lighthouse），本报告不承诺量化结果。
+
+---
+
+## 六、第二批（前端去 CDN / 系统字体）实施记录（2026-08-29）
+
+用户明确：①Tailwind/Alpine/Chart.js 改本地；②没必要用网络字体，直接用系统字体。据此落地 F1/F2/F5。
+
+### 已落地项（均非破坏性，单独提交）
+
+| 编号 | 改动 | 实施内容 |
+|---|---|---|
+| F1 | `tailwind.config.js`（新增，仓库根）+ `internal/handler/static/tailwind.css`（新增，构建产物） | 用 `tailwindcss@3` CLI 扫描 `internal/handler/template/**/*.html` 与 `sw.js` 生成本地 CSS（minify，28KB）；完整复刻原内联 `tailwind.config` 的 `darkMode:'class'`、自定义色板（rose/mauve/cream/ink）与字体族。Docker 纯 Go 构建、`go:embed static/*` 直接打包，无需 Node |
+| F1 | `internal/handler/static.go` + `main.go` | 新增 `ServeStatic`（`/static/*` 通用 handler，从 `staticFS` 读取、按扩展名设 MIME、`Cache-Control: public, max-age=86400`），路由 `r.Get("/static/*", ...)` |
+| F1 | `layout.html` | 移除 `<script src="https://cdn.tailwindcss.com">` 与内联 `tailwind.config`，改为 `<link rel="stylesheet" href="/static/tailwind.css">` |
+| F5 | `internal/handler/static/alpine.min.js`（新增，54KB）+ `layout.html` | Alpine 自托管、`/static/alpine.min.js`（`defer`）；无插件依赖 |
+| F5 | `internal/handler/static/chart.umd.min.js`（新增，208KB）+ `stats.html` | Chart.js 自托管、`/static/chart.umd.min.js`（`defer`，并修正原 CDN 版缺 `defer` 的渲染阻塞） |
+| F2 | `layout.html` | 移除 Google Fonts 三处引用（preconnect ×2 + css2 样式表）；`body`/`.font-display`/`.font-serif-cn` 改用系统字体栈（UI 无衬线 + 中文 PingFang SC/微软雅黑；标题 UI 衬线 + 中文宋体/SimSun），去除网络字体阻塞 |
+| F3 | `internal/handler/static/sw.js` | 运行时缓存移除两条 CDN URL；`CACHE_NAME` 升 `yuexi-v3` 触发静态资源重新拉取 |
+
+### 验证结果
+- `go build ./...`、`go vet ./...`、`go test -race ./...` 全部通过（新增 `TestServeStatic`：CSS 200+`text/css`+缓存头、缺失 404、路径穿越拦截）。
+- 启动服务冒烟测试：三个本地资源均 `200` 且 MIME 正确；`/login` 页面仅引用 `/static/tailwind.css`、`/static/alpine.min.js`，**无任何** `cdn.tailwindcss.com` / `cdn.jsdelivr` / `fonts.googleapis` 引用。
+- 产物完整性核对：生成的 `tailwind.css` 含 `bg-gradient-to-br`、`from-rose-400`、`bg-rose-900/30`、`dark:bg-ink-800/80`、`bg-mauve-200`、各 `dark:` 变体等关键工具类；自定义 `.glass-card`/`.text-gradient`/`.animate-fade-in-up` 等仍在 HTML 内联 `<style>` 中，不依赖 CDN。
+- 库内残留的 `https://alpinejs.dev/plugins/...`（仅用插件时触发）、`https://www.chartjs.org`/license 注释、`sourceMappingURL`（相对本地）均不构成运行时外部请求。
+
+### 说明与风险
+- 字体改为系统字体后，标题观感由 Latin 衬线（Cormorant Garamond）+ 中文衬线（Noto Serif SC）变为系统衬线（Songti SC/SimSun 等），属预期取舍；若后续要保留品牌字体，可走 F2 的子集化自托管而非网络字体。
+- `tailwind.css` 为构建产物，源码 `tailwind.config.js` + `tailwind.in.css` 已入库；重新生成命令见文件头注释。修改模板样式后需重新构建并提交 `tailwind.css`。
+- 预期收益（Lighthouse FCP/TTI 提升、消除第三方阻塞、离线可用）仍建议按报告第四节做实测对比。
