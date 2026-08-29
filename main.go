@@ -12,20 +12,8 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 )
 
-func main() {
-	dbPath := "data/yuexi.db"
-	if p := os.Getenv("YUEXI_DB_PATH"); p != "" {
-		dbPath = p
-	}
-
-	db.Init(dbPath)
-	defer db.Close()
-
-	port := "8080"
-	if p := os.Getenv("YUEXI_PORT"); p != "" {
-		port = p
-	}
-
+// buildRouter constructs the application HTTP router with all routes registered.
+func buildRouter() *chi.Mux {
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
@@ -88,6 +76,25 @@ func main() {
 	r.Get("/icon-512.png", func(w http.ResponseWriter, r *http.Request) { handler.ServeIcon(w, r, 512) })
 	r.Get("/favicon.ico", handler.ServeFavicon)
 	r.Get("/favicon.png", func(w http.ResponseWriter, r *http.Request) { handler.ServeIcon(w, r, 32) })
+
+	return r
+}
+
+func main() {
+	dbPath := "data/yuexi.db"
+	if p := os.Getenv("YUEXI_DB_PATH"); p != "" {
+		dbPath = p
+	}
+
+	db.Init(dbPath)
+	defer db.Close()
+
+	port := "8080"
+	if p := os.Getenv("YUEXI_PORT"); p != "" {
+		port = p
+	}
+
+	r := buildRouter()
 
 	// Start notification checker
 	service.StartNotificationChecker()
