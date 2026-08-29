@@ -80,12 +80,24 @@ func GetSession(token string) (*SessionData, error) {
 	if err != nil {
 		return nil, err
 	}
-	// Check if expired
-	if expiresAt < time.Now().Format("2006-01-02 15:04:05") {
+	// Check if expired. Compare as time values rather than raw strings, because
+	// SQLite's DATETIME affinity may normalize the stored value (e.g. to RFC3339).
+	if sessionExpired(expiresAt) {
 		DB.Exec("DELETE FROM sessions WHERE token = ?", token)
 		return nil, nil
 	}
 	return &s, nil
+}
+
+// sessionExpired reports whether the given expiry timestamp is in the past.
+func sessionExpired(expiresAt string) bool {
+	layouts := []string{time.RFC3339, "2006-01-02 15:04:05", "2006-01-02T15:04:05"}
+	for _, layout := range layouts {
+		if t, err := time.Parse(layout, expiresAt); err == nil {
+			return t.Before(time.Now())
+		}
+	}
+	return expiresAt < time.Now().Format("2006-01-02 15:04:05")
 }
 
 func DeleteSession(token string) error {
@@ -94,7 +106,9 @@ func DeleteSession(token string) error {
 }
 
 func DeleteExpiredSessions() error {
-	_, err := DB.Exec("DELETE FROM sessions WHERE expires_at < ?", time.Now().Format("2006-01-02 15:04:05"))
+	// Compare against an RFC3339 value so it sorts consistently with the
+	// normalized form SQLite stores for DATETIME columns.
+	_, err := DB.Exec("DELETE FROM sessions WHERE expires_at < ?", time.Now().Format(time.RFC3339))
 	return err
 }
 

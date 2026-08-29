@@ -15,3 +15,8 @@ Thumbs.db
 
 # MiMoCode
 .mimocode/
+
+# Test coverage output
+coverage.out
+coverage.txt
+*.coverprofile

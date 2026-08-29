@@ -6,8 +6,12 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+  id-token: write
+
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -23,3 +27,15 @@ jobs:
 
       - name: Vet
         run: go vet ./...
+
+      - name: Test with coverage
+        run: go test -race -coverprofile=coverage.out -covermode=atomic ./...
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v7
+        with:
+          files: ./coverage.out
+          flags: unittests
+          name: yuexi
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
