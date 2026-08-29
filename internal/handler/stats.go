@@ -39,15 +39,25 @@ func StatsAPI(w http.ResponseWriter, r *http.Request) {
 	persons, _ := db.GetPersonsByUser(userID)
 	allRecords, _ := db.GetRecordsByUser(userID)
 
+	// Group records by person in a single O(n) pass instead of an
+	// O(persons x records) nested scan.
+	recsByPerson := make(map[int64][]db.Record, len(persons))
+	for _, rec := range allRecords {
+		recsByPerson[rec.PersonID] = append(recsByPerson[rec.PersonID], rec)
+	}
+
+	// Fetch daily logs for the whole user once and group by person, replacing
+	// the per-person N+1 queries that previously ran inside the loop.
+	allLogs, _ := db.GetDailyLogsByUser(userID)
+	logsByPerson := make(map[int64][]db.DailyLog, len(persons))
+	for _, l := range allLogs {
+		logsByPerson[l.PersonID] = append(logsByPerson[l.PersonID], l)
+	}
+
 	result := make(map[int64]db.CycleStats)
 
 	for _, p := range persons {
-		var recs []db.Record
-		for _, rec := range allRecords {
-			if rec.PersonID == p.ID {
-				recs = append(recs, rec)
-			}
-		}
+		recs := recsByPerson[p.ID]
 		if len(recs) < 2 {
 			result[p.ID] = db.CycleStats{
 				MinCycleLength:  p.CycleLength,
@@ -121,10 +131,9 @@ func StatsAPI(w http.ResponseWriter, r *http.Request) {
 			stats.AvgPeriodLength = avg(periodLengths)
 		}
 
-		// Calculate symptom statistics
-		logs, _ := db.GetDailyLogsByPerson(p.ID)
+		// Symptom statistics (logs already grouped by person above)
 		symptomCounts := make(map[string]int)
-		for _, log := range logs {
+		for _, log := range logsByPerson[p.ID] {
 			if log.Symptoms != "" {
 				symptoms := strings.Split(log.Symptoms, ",")
 				for _, s := range symptoms {

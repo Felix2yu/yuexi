@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 	"yuexi/internal/db"
 	"yuexi/internal/handler"
 	"yuexi/internal/service"
@@ -15,7 +16,8 @@ import (
 // buildRouter constructs the application HTTP router with all routes registered.
 func buildRouter() *chi.Mux {
 	r := chi.NewRouter()
-	r.Use(middleware.Logger)
+	r.Use(middleware.Compress(5))
+	r.Use(slowRequestLogger)
 	r.Use(middleware.Recoverer)
 
 	r.Get("/health", handler.Health)
@@ -78,6 +80,30 @@ func buildRouter() *chi.Mux {
 	r.Get("/favicon.png", func(w http.ResponseWriter, r *http.Request) { handler.ServeIcon(w, r, 32) })
 
 	return r
+}
+
+// slowRequestLogger records only requests that are slow (>200ms) or returned a
+// server error. This keeps per-request log volume low under load; the nginx
+// reverse proxy already writes a full access log at the edge.
+func slowRequestLogger(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		sw := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
+		next.ServeHTTP(sw, r)
+		if d := time.Since(start); d >= 200*time.Millisecond || sw.status >= 500 {
+			log.Printf("[slow] %s %s %d %s", r.Method, r.URL.Path, sw.status, d)
+		}
+	})
+}
+
+type statusRecorder struct {
+	http.ResponseWriter
+	status int
+}
+
+func (s *statusRecorder) WriteHeader(code int) {
+	s.status = code
+	s.ResponseWriter.WriteHeader(code)
 }
 
 func main() {

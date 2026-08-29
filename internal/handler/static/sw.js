@@ -1,4 +1,4 @@
-const CACHE_NAME = 'yuexi-v1';
+const CACHE_NAME = 'yuexi-v2';
 const STATIC_ASSETS = [
   '/',
   '/settings',
@@ -26,18 +26,34 @@ self.addEventListener('activate', event => {
 
 self.addEventListener('fetch', event => {
   const { request } = event;
+  const url = new URL(request.url);
 
   if (request.method !== 'GET') return;
 
-  // API and record mutations: network only
-  if (request.url.includes('/api/') || request.url.includes('/record/')) {
+  // API and record mutations: network only (with cache fallback on failure).
+  if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/record/')) {
     event.respondWith(
       fetch(request).catch(() => caches.match(request))
     );
     return;
   }
 
-  // Static assets and pages: cache first, then network
+  // HTML navigations (dynamic, data-bearing pages): network-first so users
+  // always see fresh data; fall back to cache only when offline.
+  if (request.mode === 'navigate') {
+    event.respondWith(
+      fetch(request).then(response => {
+        if (response.ok) {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(request, clone));
+        }
+        return response;
+      }).catch(() => caches.match(request).then(cached => cached || caches.match('/')))
+    );
+    return;
+  }
+
+  // Static assets: cache-first, then network.
   event.respondWith(
     caches.match(request).then(cached => {
       if (cached) return cached;
@@ -48,10 +64,6 @@ self.addEventListener('fetch', event => {
         }
         return response;
       });
-    }).catch(() => {
-      if (request.mode === 'navigate') {
-        return caches.match('/');
-      }
-    })
+    }).catch(() => caches.match('/'))
   );
 });

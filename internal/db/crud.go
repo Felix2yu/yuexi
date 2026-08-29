@@ -3,6 +3,7 @@ package db
 import (
 	"database/sql"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -67,16 +68,42 @@ type SessionData struct {
 }
 
 func CreateSession(token string, userID int64, username string, expiresAt string) error {
+	// Drop any prior cache entry for this token (defensive; tokens are random).
+	sessionCache.Delete(token)
 	_, err := DB.Exec("INSERT INTO sessions (token, user_id, username, expires_at) VALUES (?, ?, ?, ?)",
 		token, userID, username, expiresAt)
 	return err
 }
 
+// sessionCache is an in-process cache of valid sessions keyed by token. It
+// removes a database round-trip from every authenticated request. Entries are
+// invalidated on login/logout/expiration/user-deletion. Safe for the
+// single-instance (SQLite) deployment this app targets.
+var sessionCache sync.Map // token -> cachedSession
+
+type cachedSession struct {
+	token     string
+	userID    int64
+	username  string
+	expiresAt string
+}
+
 func GetSession(token string) (*SessionData, error) {
+	if v, ok := sessionCache.Load(token); ok {
+		cs := v.(cachedSession)
+		if !sessionExpired(cs.expiresAt) {
+			return &SessionData{Token: cs.token, UserID: cs.userID, Username: cs.username}, nil
+		}
+		sessionCache.Delete(token)
+	}
+
 	var s SessionData
 	var expiresAt string
 	err := DB.QueryRow("SELECT token, user_id, username, expires_at FROM sessions WHERE token = ?", token).
 		Scan(&s.Token, &s.UserID, &s.Username, &expiresAt)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -84,8 +111,10 @@ func GetSession(token string) (*SessionData, error) {
 	// SQLite's DATETIME affinity may normalize the stored value (e.g. to RFC3339).
 	if sessionExpired(expiresAt) {
 		DB.Exec("DELETE FROM sessions WHERE token = ?", token)
+		sessionCache.Delete(token)
 		return nil, nil
 	}
+	sessionCache.Store(token, cachedSession{token, s.UserID, s.Username, expiresAt})
 	return &s, nil
 }
 
@@ -101,6 +130,7 @@ func sessionExpired(expiresAt string) bool {
 }
 
 func DeleteSession(token string) error {
+	sessionCache.Delete(token)
 	_, err := DB.Exec("DELETE FROM sessions WHERE token = ?", token)
 	return err
 }
@@ -109,10 +139,21 @@ func DeleteExpiredSessions() error {
 	// Compare against an RFC3339 value so it sorts consistently with the
 	// normalized form SQLite stores for DATETIME columns.
 	_, err := DB.Exec("DELETE FROM sessions WHERE expires_at < ?", time.Now().Format(time.RFC3339))
+	// Cache may hold expired entries; clear it and let the next lookup refresh.
+	sessionCache.Range(func(k, _ interface{}) bool {
+		sessionCache.Delete(k)
+		return true
+	})
 	return err
 }
 
 func DeleteUserSessions(userID int64) error {
+	sessionCache.Range(func(k, v interface{}) bool {
+		if v.(cachedSession).userID == userID {
+			sessionCache.Delete(k)
+		}
+		return true
+	})
 	_, err := DB.Exec("DELETE FROM sessions WHERE user_id = ?", userID)
 	return err
 }
@@ -450,6 +491,42 @@ func UpsertDailyLog(personID int64, date string, flowLevel *int, symptoms, note 
 func DeleteDailyLog(personID int64, date string) error {
 	_, err := DB.Exec("DELETE FROM daily_logs WHERE person_id = ? AND date = ?", personID, date)
 	return err
+}
+
+func GetDailyLogsByUser(userID int64) ([]DailyLog, error) {
+	rows, err := DB.Query(`SELECT dl.id, dl.person_id, dl.date, dl.flow_level, COALESCE(dl.symptoms, ''), COALESCE(dl.note, ''), dl.weight, dl.temperature, COALESCE(dl.created_at, '')
+		FROM daily_logs dl
+		JOIN persons p ON dl.person_id = p.id
+		WHERE p.user_id = ?
+		ORDER BY dl.date DESC`, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	logs := make([]DailyLog, 0)
+	for rows.Next() {
+		var l DailyLog
+		var flowLevel sql.NullInt64
+		var weight, temperature sql.NullFloat64
+		if err := rows.Scan(&l.ID, &l.PersonID, &l.Date, &flowLevel, &l.Symptoms, &l.Note, &weight, &temperature, &l.CreatedAt); err != nil {
+			return nil, err
+		}
+		if flowLevel.Valid {
+			v := int(flowLevel.Int64)
+			l.FlowLevel = &v
+		}
+		if weight.Valid {
+			l.Weight = &weight.Float64
+		}
+		if temperature.Valid {
+			l.Temperature = &temperature.Float64
+		}
+		l.Date = normalizeDate(l.Date)
+		l.CreatedAt = normalizeDate(l.CreatedAt)
+		logs = append(logs, l)
+	}
+	return logs, nil
 }
 
 func GetAllDailyLogs() ([]DailyLog, error) {

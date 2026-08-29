@@ -189,6 +189,10 @@
             opacity: 0.4;
             pointer-events: none;
             z-index: 0;
+            /* Promote to its own compositor layer so the large blurred element
+               does not trigger full-page repaints while the page scrolls. */
+            will-change: transform;
+            transform: translateZ(0);
         }
     </style>
     <script>

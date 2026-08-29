@@ -116,19 +116,35 @@ func getAllNotificationUserIDs() []int64 {
 	return ids
 }
 
+// sendTimeout bounds a single notification send so a slow/hung upstream channel
+// cannot stall the whole background check round.
+const sendTimeout = 10 * time.Second
+
 func sendNotification(url, message string) error {
 	sender, err := shoutrrr.NewSender(log.Default(), url)
 	if err != nil {
 		return fmt.Errorf("创建发送器失败: %w", err)
 	}
 
-	errs := sender.Send(message, nil)
-	for _, e := range errs {
-		if e != nil {
-			return e
+	type sendResult struct{ err error }
+	ch := make(chan sendResult, 1)
+	go func() {
+		var firstErr error
+		for _, e := range sender.Send(message, nil) {
+			if e != nil {
+				firstErr = e
+				break
+			}
 		}
+		ch <- sendResult{firstErr}
+	}()
+
+	select {
+	case res := <-ch:
+		return res.err
+	case <-time.After(sendTimeout):
+		return fmt.Errorf("通知发送超时（%s）", sendTimeout)
 	}
-	return nil
 }
 
 func TestNotification(url string) error {

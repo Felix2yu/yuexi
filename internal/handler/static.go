@@ -1,12 +1,14 @@
 package handler
 
 import (
+	"bytes"
 	"embed"
 	"image"
 	"image/color"
 	"image/png"
 	"math"
 	"net/http"
+	"sync"
 )
 
 //go:embed template/*.html
@@ -24,6 +26,7 @@ func Health(w http.ResponseWriter, r *http.Request) {
 func ServeManifest(w http.ResponseWriter, r *http.Request) {
 	data, _ := staticFS.ReadFile("static/manifest.json")
 	w.Header().Set("Content-Type", "application/manifest+json")
+	w.Header().Set("Cache-Control", "public, max-age=86400")
 	w.Write(data)
 }
 
@@ -34,18 +37,41 @@ func ServeSW(w http.ResponseWriter, r *http.Request) {
 	w.Write(data)
 }
 
+// iconCache holds pre-rendered PNG bytes keyed by pixel size, so icon requests
+// do not repeatedly run the (expensive) per-pixel generateIcon computation.
+var iconCache sync.Map // int (size) -> []byte
+
+func cachedIcon(size int) []byte {
+	if v, ok := iconCache.Load(size); ok {
+		return v.([]byte)
+	}
+	var buf bytes.Buffer
+	if err := png.Encode(&buf, generateIcon(size)); err != nil {
+		return nil // fall back to on-the-fly encoding
+	}
+	b := buf.Bytes()
+	iconCache.Store(size, b)
+	return b
+}
+
 func ServeIcon(w http.ResponseWriter, r *http.Request, size int) {
-	img := generateIcon(size)
 	w.Header().Set("Content-Type", "image/png")
 	w.Header().Set("Cache-Control", "public, max-age=86400")
-	png.Encode(w, img)
+	if b := cachedIcon(size); b != nil {
+		w.Write(b)
+		return
+	}
+	png.Encode(w, generateIcon(size))
 }
 
 func ServeFavicon(w http.ResponseWriter, r *http.Request) {
-	img := generateIcon(32)
 	w.Header().Set("Content-Type", "image/x-icon")
 	w.Header().Set("Cache-Control", "no-cache")
-	png.Encode(w, img)
+	if b := cachedIcon(32); b != nil {
+		w.Write(b)
+		return
+	}
+	png.Encode(w, generateIcon(32))
 }
 
 func generateIcon(size int) image.Image {

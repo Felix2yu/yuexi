@@ -27,6 +27,14 @@ func Init(dbPath string) {
 		log.Fatalf("Failed to ping database: %v", err)
 	}
 
+	// Constrain the connection pool. SQLite is a single-writer database; an
+	// unbounded pool causes lock contention and "database is locked" errors
+	// under concurrency. WAL mode (set via PRAGMA above) permits concurrent
+	// readers, so a small pool balances read throughput against write safety.
+	DB.SetMaxOpenConns(4)
+	DB.SetMaxIdleConns(2)
+	DB.SetConnMaxLifetime(0)
+
 	migrate()
 }
 
