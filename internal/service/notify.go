@@ -6,7 +6,7 @@ import (
 	"time"
 	"yuexi/internal/db"
 
-	"github.com/containrrr/shoutrrr"
+	apprise "github.com/unraid/apprise-go"
 )
 
 var notifyTicker *time.Ticker
@@ -121,22 +121,11 @@ func getAllNotificationUserIDs() []int64 {
 const sendTimeout = 10 * time.Second
 
 func sendNotification(url, message string) error {
-	sender, err := shoutrrr.NewSender(log.Default(), url)
-	if err != nil {
-		return fmt.Errorf("创建发送器失败: %w", err)
-	}
-
 	type sendResult struct{ err error }
 	ch := make(chan sendResult, 1)
 	go func() {
-		var firstErr error
-		for _, e := range sender.Send(message, nil) {
-			if e != nil {
-				firstErr = e
-				break
-			}
-		}
-		ch <- sendResult{firstErr}
+		err := apprise.Send([]string{url}, message)
+		ch <- sendResult{err}
 	}()
 
 	select {

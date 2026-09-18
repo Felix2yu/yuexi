@@ -138,13 +138,13 @@
 
         <div x-show="notifyEnabled" x-cloak class="space-y-4 pt-2">
             <div>
-                <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">Shoutrrr 通知地址</label>
+                <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">通知地址</label>
                 <input type="text" x-model="notifyURL" @blur="saveNotify()"
                     class="border border-gray-200 dark:border-gray-700 bg-white dark:bg-ink-800 text-gray-700 dark:text-gray-200 rounded-xl px-3 py-2.5 text-sm w-full focus:ring-2 focus:ring-rose-500 focus:border-transparent transition-all font-mono"
                     placeholder="如 telegram://token@telegram?chats=chat_id">
                 <p class="text-xs text-gray-400 dark:text-gray-500 mt-1.5">
                     支持 Telegram、Discord、Slack、邮件等，参考
-                    <a href="https://containrrr.dev/shoutrrr/0.8/overview/" target="_blank" class="text-rose-500 hover:underline">Shoutrrr 文档</a>
+                    <a href="https://github.com/unraid/apprise-go" target="_blank" class="text-rose-500 hover:underline">apprise-go 文档</a>
                 </p>
             </div>
 

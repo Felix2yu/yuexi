@@ -805,12 +805,16 @@ func TestNotificationTest(t *testing.T) {
 	if rr.Code != http.StatusBadRequest {
 		t.Errorf("empty url code = %d, want 400", rr.Code)
 	}
-	// success (logger sink needs no network)
-	req = authedReq(t, "POST", "/api/notify/test", formBody(map[string]string{"url": "logger://"}))
+	// success (local http sink)
+	sink := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer sink.Close()
+	req = authedReq(t, "POST", "/api/notify/test", formBody(map[string]string{"url": "json://" + sink.Listener.Addr().String()}))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	rr = do(NotificationTest, req)
 	if rr.Code != http.StatusOK {
-		t.Errorf("success code = %d, want 200 (logger sink)", rr.Code)
+		t.Errorf("success code = %d, want 200 (json sink)", rr.Code)
 	}
 	// failure
 	req = authedReq(t, "POST", "/api/notify/test", formBody(map[string]string{"url": "::not-a-url"}))
