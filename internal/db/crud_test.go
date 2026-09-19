@@ -194,12 +194,12 @@ func TestDailyLogCRUD(t *testing.T) {
 
 func TestNotificationConfig(t *testing.T) {
 	u, _ := CreateUser("notify-owner", "h")
-	cfg := NotificationConfig{Enabled: true, ShoutrrrURL: "logger://", DaysBefore: 2}
+	cfg := NotificationConfig{Enabled: true, NotifyURL: "logger://", DaysBefore: 2}
 	if err := SaveNotificationConfig(u.ID, cfg); err != nil {
 		t.Fatal(err)
 	}
 	got := GetNotificationConfig(u.ID)
-	if !got.Enabled || got.ShoutrrrURL != "logger://" || got.DaysBefore != 2 {
+	if !got.Enabled || got.NotifyURL != "logger://" || got.DaysBefore != 2 {
 		t.Errorf("config mismatch: %+v", got)
 	}
 	today := time.Now().Format("2006-01-02")

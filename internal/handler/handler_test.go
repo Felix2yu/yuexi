@@ -785,7 +785,7 @@ func TestNotificationConfigAPI(t *testing.T) {
 		t.Errorf("POST invalid json code = %d, want 400", rr.Code)
 	}
 	// POST success
-	req = authedReq(t, "POST", "/api/notify/config", strings.NewReader(`{"enabled":true,"shoutrrr_url":"logger://"}`))
+	req = authedReq(t, "POST", "/api/notify/config", strings.NewReader(`{"enabled":true,"notify_url":"logger://"}`))
 	rr = do(NotificationConfigAPI, req)
 	if rr.Code != http.StatusOK {
 		t.Errorf("POST success code = %d, want 200", rr.Code)

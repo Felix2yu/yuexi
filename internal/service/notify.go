@@ -47,7 +47,7 @@ func checkNotifications() {
 
 	for _, userID := range userIDs {
 		cfg := db.GetNotificationConfig(userID)
-		if !cfg.Enabled || cfg.ShoutrrrURL == "" {
+		if !cfg.Enabled || cfg.NotifyURL == "" {
 			continue
 		}
 
@@ -78,7 +78,7 @@ func checkNotifications() {
 				msg := fmt.Sprintf("月汐提醒：%s 的月经预计在 %d 天后到来（%s）",
 					p.Name, daysUntil, nextPeriod.Format("2006-01-02"))
 
-				if err := sendNotification(cfg.ShoutrrrURL, msg); err != nil {
+				if err := sendNotification(cfg.NotifyURL, msg); err != nil {
 					log.Printf("通知发送失败: %v", err)
 					continue
 				}
@@ -89,7 +89,7 @@ func checkNotifications() {
 			anomalies := DetectCycleAnomaly(p, records)
 			for _, anomaly := range anomalies {
 				msg := fmt.Sprintf("月汐提醒：%s 的周期异常 - %s", p.Name, anomaly.Description)
-				if err := sendNotification(cfg.ShoutrrrURL, msg); err != nil {
+				if err := sendNotification(cfg.NotifyURL, msg); err != nil {
 					log.Printf("异常通知发送失败: %v", err)
 				}
 			}
