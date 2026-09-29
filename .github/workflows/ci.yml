@@ -3,39 +3,37 @@ name: CI
 on:
   push:
     branches: [main]
+    tags: ['v*']
   pull_request:
     branches: [main]
+  schedule:
+    - cron: '0 3 * * 1'
+  workflow_dispatch:
 
 permissions:
   contents: read
-  id-token: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   test:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
+    uses: Felix2yu/.github/.github/workflows/reusable-test.yml@v1
+    secrets:
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+    with:
+      go-dir: .
+      test-packages: ./...
+      test-flags: -race -covermode=atomic
 
-      - name: Set up Go
-        uses: actions/setup-go@v7
-        with:
-          go-version: "1.27"
-
-      - name: Build
-        run: go build -v ./...
-
-      - name: Vet
-        run: go vet ./...
-
-      - name: Test with coverage
-        run: go test -race -coverprofile=coverage.out -covermode=atomic ./...
-
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v7
-        with:
-          files: ./coverage.out
-          flags: unittests
-          name: yuexi
-          fail_ci_if_error: false
-          token: ${{ secrets.CODECOV_TOKEN }}
+  image:
+    needs: test
+    permissions:
+      contents: read
+      packages: write
+    uses: Felix2yu/.github/.github/workflows/reusable-image.yml@v1
+    with:
+      go-dir: .
+      binary-name: yuexi
+      image-name: ghcr.io/felix2yu/yuexi
