@@ -393,7 +393,7 @@ func GetNotificationConfig(userID int64) NotificationConfig {
 	var cfg NotificationConfig
 	var enabled int
 	var daysBefore int
-	err := DB.QueryRow("SELECT enabled, shoutrrr_url, days_before, COALESCE(last_notified, '') FROM notification_config WHERE user_id = ?", userID).
+	err := DB.QueryRow("SELECT enabled, notify_url, days_before, COALESCE(last_notified, '') FROM notification_config WHERE user_id = ?", userID).
 		Scan(&enabled, &cfg.NotifyURL, &daysBefore, &cfg.LastNotified)
 	if err != nil {
 		return NotificationConfig{DaysBefore: 3}
@@ -408,9 +408,9 @@ func SaveNotificationConfig(userID int64, cfg NotificationConfig) error {
 	if cfg.Enabled {
 		enabled = 1
 	}
-	_, err := DB.Exec(`INSERT INTO notification_config (user_id, enabled, shoutrrr_url, days_before, last_notified)
+	_, err := DB.Exec(`INSERT INTO notification_config (user_id, enabled, notify_url, days_before, last_notified)
 		VALUES (?, ?, ?, ?, ?)
-		ON CONFLICT(user_id) DO UPDATE SET enabled=?, shoutrrr_url=?, days_before=?, last_notified=?`,
+		ON CONFLICT(user_id) DO UPDATE SET enabled=?, notify_url=?, days_before=?, last_notified=?`,
 		userID, enabled, cfg.NotifyURL, cfg.DaysBefore, cfg.LastNotified,
 		enabled, cfg.NotifyURL, cfg.DaysBefore, cfg.LastNotified)
 	return err

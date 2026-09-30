@@ -71,7 +71,7 @@ func migrate() {
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			user_id INTEGER NOT NULL DEFAULT 1,
 			enabled INTEGER NOT NULL DEFAULT 0,
-			shoutrrr_url TEXT NOT NULL DEFAULT '',
+			notify_url TEXT NOT NULL DEFAULT '',
 			days_before INTEGER NOT NULL DEFAULT 3,
 			last_notified TEXT DEFAULT '',
 			FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
@@ -101,6 +101,9 @@ func migrate() {
 	migrateAddColumn("persons", "user_id", "INTEGER NOT NULL DEFAULT 1")
 	migrateAddColumn("notification_config", "user_id", "INTEGER NOT NULL DEFAULT 1")
 
+	// Migration: rename shoutrrr_url column to notify_url (legacy shoutrrr naming)
+	migrateRenameColumn("notification_config", "shoutrrr_url", "notify_url")
+
 	// Migration: add weight and temperature columns to daily_logs
 	migrateAddColumn("daily_logs", "weight", "REAL")
 	migrateAddColumn("daily_logs", "temperature", "REAL")
@@ -123,7 +126,7 @@ func migrate() {
 	var count int
 	DB.QueryRow("SELECT COUNT(*) FROM notification_config").Scan(&count)
 	if count == 0 {
-		DB.Exec("INSERT INTO notification_config (user_id, enabled, shoutrrr_url, days_before) VALUES (1, 0, '', 3)")
+		DB.Exec("INSERT INTO notification_config (user_id, enabled, notify_url, days_before) VALUES (1, 0, '', 3)")
 	}
 }
 
@@ -132,6 +135,17 @@ func migrateAddColumn(table, column, typedef string) {
 	err := DB.QueryRow("SELECT COUNT(*) FROM pragma_table_info(?) WHERE name=?", table, column).Scan(&cnt)
 	if err != nil || cnt == 0 {
 		DB.Exec("ALTER TABLE " + table + " ADD COLUMN " + column + " " + typedef)
+	}
+}
+
+func migrateRenameColumn(table, oldName, newName string) {
+	var cnt int
+	err := DB.QueryRow("SELECT COUNT(*) FROM pragma_table_info(?) WHERE name=?", table, oldName).Scan(&cnt)
+	if err != nil {
+		return
+	}
+	if cnt > 0 {
+		DB.Exec("ALTER TABLE " + table + " RENAME COLUMN " + oldName + " TO " + newName)
 	}
 }
 

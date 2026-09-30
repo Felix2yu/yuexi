@@ -230,7 +230,7 @@ function settings() {
                 const data = await resp.json();
                 if (data.config) {
                     this.notifyEnabled = data.config.enabled;
-                    this.notifyURL = data.config.shoutrrr_url || '';
+                    this.notifyURL = data.config.notify_url || '';
                     this.notifyDaysBefore = data.config.days_before || 3;
                 }
                 this.upcoming = data.upcoming || [];
@@ -272,7 +272,7 @@ function settings() {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         enabled: this.notifyEnabled,
-                        shoutrrr_url: this.notifyURL,
+                        notify_url: this.notifyURL,
                         days_before: this.notifyDaysBefore
                     })
                 });
