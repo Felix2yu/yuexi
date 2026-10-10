@@ -77,7 +77,12 @@ func buildRouter() *chi.Mux {
 	r.Get("/sw.js", handler.ServeSW)
 	r.Get("/icon-192.png", func(w http.ResponseWriter, r *http.Request) { handler.ServeIcon(w, r, 192) })
 	r.Get("/icon-512.png", func(w http.ResponseWriter, r *http.Request) { handler.ServeIcon(w, r, 512) })
+	r.Get("/icon-maskable-192.png", func(w http.ResponseWriter, r *http.Request) { handler.ServeMaskableIcon(w, r, 192) })
+	r.Get("/icon-maskable-512.png", func(w http.ResponseWriter, r *http.Request) { handler.ServeMaskableIcon(w, r, 512) })
+	// apple-touch 用满幅出血版本（iOS 自己切圆角，带透明角会显示成黑角）
+	r.Get("/apple-touch-icon.png", func(w http.ResponseWriter, r *http.Request) { handler.ServeMaskableIcon(w, r, 180) })
 	r.Get("/favicon.ico", handler.ServeFavicon)
+	r.Get("/favicon.svg", handler.ServeFaviconSVG)
 	r.Get("/favicon.png", func(w http.ResponseWriter, r *http.Request) { handler.ServeIcon(w, r, 32) })
 
 	return r

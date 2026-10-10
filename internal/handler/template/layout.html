@@ -8,14 +8,17 @@
     <meta name="theme-color" content="#fce7f3" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#1a1625" media="(prefers-color-scheme: dark)">
     <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="月汐">
     <link rel="manifest" href="/manifest.json">
-    <link rel="icon" href="/favicon.ico" type="image/x-icon">
+    <!-- 图标家族（契约见 PWA规范.md）：ico -> svg -> 32png -> 192；apple-touch 固定 180 -->
+    <link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48">
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
     <link rel="icon" href="/favicon.png" type="image/png" sizes="32x32">
-    <link rel="apple-touch-icon" href="/icon-192.png">
-    <link rel="apple-touch-icon" sizes="192x192" href="/icon-192.png">
-    <link rel="apple-touch-icon" sizes="512x512" href="/icon-512.png">
+    <link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180">
+    <meta name="format-detection" content="telephone=no">
     <link rel="stylesheet" href="/static/tailwind.css">
     <script>
         (function() {
