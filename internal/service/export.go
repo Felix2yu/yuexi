@@ -133,7 +133,9 @@ func ImportData(reader io.Reader, userID int64) (int, error) {
 		for _, log := range data.DailyLogs {
 			log.ID = 0
 			log.PersonID = targetPerson.ID
-			db.UpsertDailyLog(log.PersonID, log.Date, log.FlowLevel, log.Symptoms, log.Note, log.Weight, log.Temperature)
+			if err := db.UpsertDailyLog(log.PersonID, log.Date, log.FlowLevel, log.Symptoms, log.Note, log.Weight, log.Temperature); err != nil {
+				return count, err
+			}
 		}
 	}
 

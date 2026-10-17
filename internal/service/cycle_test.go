@@ -24,8 +24,6 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
-func strPtr(s string) *string { return &s }
-
 func TestSortRecordsByDate(t *testing.T) {
 	recs := []db.Record{
 		{StartDate: "2024-03-01"},

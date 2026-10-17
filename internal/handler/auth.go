@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"html/template"
+	"log"
 	"net/http"
 	"strings"
 	"sync"
@@ -21,7 +22,9 @@ func init() {
 	go func() {
 		for {
 			time.Sleep(1 * time.Hour)
-			db.DeleteExpiredSessions()
+			if err := db.DeleteExpiredSessions(); err != nil {
+				log.Printf("清理过期会话失败: %v", err)
+			}
 		}
 	}()
 }
@@ -87,7 +90,9 @@ func createSession(userID int64, username string) string {
 	rand.Read(b)
 	token := hex.EncodeToString(b)
 	expiresAt := time.Now().Add(30 * 24 * time.Hour).Format("2006-01-02 15:04:05")
-	db.CreateSession(token, userID, username, expiresAt)
+	if err := db.CreateSession(token, userID, username, expiresAt); err != nil {
+		log.Printf("创建会话失败: %v", err)
+	}
 	return token
 }
 
@@ -269,7 +274,10 @@ func RegisterPost(w http.ResponseWriter, r *http.Request) {
 func LogoutPost(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie("session")
 	if err == nil {
-		db.DeleteSession(cookie.Value)
+		if err := db.DeleteSession(cookie.Value); err != nil {
+			http.Error(w, "写入失败: "+err.Error(), 500)
+			return
+		}
 	}
 	http.SetCookie(w, &http.Cookie{
 		Name:   "session",
@@ -349,12 +357,18 @@ func PasswordPost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Clear all other sessions for this user for security
-	db.DeleteUserSessions(userID)
+	if err := db.DeleteUserSessions(userID); err != nil {
+		http.Error(w, "写入失败: "+err.Error(), 500)
+		return
+	}
 
 	// Re-create current session
 	cookie, _ := r.Cookie("session")
 	if cookie != nil {
-		db.DeleteSession(cookie.Value)
+		if err := db.DeleteSession(cookie.Value); err != nil {
+			http.Error(w, "写入失败: "+err.Error(), 500)
+			return
+		}
 	}
 	token := createSession(userID, user.Username)
 	http.SetCookie(w, &http.Cookie{

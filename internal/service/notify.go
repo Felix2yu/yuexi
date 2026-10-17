@@ -9,7 +9,6 @@ import (
 	apprise "github.com/unraid/apprise-go"
 )
 
-var notifyTicker *time.Ticker
 var notifyDone chan struct{}
 
 func StartNotificationChecker() {
@@ -17,7 +16,6 @@ func StartNotificationChecker() {
 	go func() {
 		// Check every 30 minutes
 		ticker := time.NewTicker(30 * time.Minute)
-		notifyTicker = ticker
 		checkNotifications()
 		for {
 			select {
@@ -95,7 +93,9 @@ func checkNotifications() {
 			}
 		}
 
-		db.UpdateNotificationLastNotified(userID, todayStr)
+		if err := db.UpdateNotificationLastNotified(userID, todayStr); err != nil {
+			log.Printf("记录通知时间失败: %v", err)
+		}
 	}
 }
 

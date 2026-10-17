@@ -16,8 +16,9 @@ import (
 	"testing"
 	"time"
 
-	"golang.org/x/crypto/bcrypt"
 	"yuexi/internal/db"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
 // TestMain spins up an isolated SQLite database for the handler package tests.
@@ -379,7 +380,8 @@ func TestRegisterPost(t *testing.T) {
 		})
 	}
 	// pre-create a user so the duplicate case has something to collide with
-	db.CreateUser("dupuser", "hash")
+	// 幂等预置：前面的子测试可能已经建过同名用户，唯一约束冲突是预期内的
+	_, _ = db.CreateUser("dupuser", "hash")
 }
 
 func TestLogoutPost(t *testing.T) {
@@ -463,7 +465,9 @@ func TestHome(t *testing.T) {
 	}
 	// with person -> renders
 	uid, c := authedUser(t)
-	db.CreatePerson(uid, "home-person", 28, 5)
+	if _, err := db.CreatePerson(uid, "home-person", 28, 5); err != nil {
+		t.Fatal(err)
+	}
 	rr = do(Home, reqWithCookie("GET", "/", nil, c))
 	if rr.Code != http.StatusOK {
 		t.Errorf("with-person code = %d, want 200", rr.Code)
@@ -580,7 +584,9 @@ func TestPersonDelete(t *testing.T) {
 func TestRecordAPI(t *testing.T) {
 	uid, c := authedUser(t)
 	p, _ := db.CreatePerson(uid, "rec-p", 28, 5)
-	db.CreateRecord(p.ID, "2024-03-01", nil, "note")
+	if _, err := db.CreateRecord(p.ID, "2024-03-01", nil, "note"); err != nil {
+		t.Fatal(err)
+	}
 
 	rr := do(RecordAPI, reqWithCookie("GET", "/api/record?year=2024&month=3", nil, c))
 	if rr.Code != http.StatusOK {
@@ -696,7 +702,9 @@ func TestStatsPage(t *testing.T) {
 		t.Errorf("no-person should redirect to /person")
 	}
 	uid, c := authedUser(t)
-	db.CreatePerson(uid, "st-p", 28, 5)
+	if _, err := db.CreatePerson(uid, "st-p", 28, 5); err != nil {
+		t.Fatal(err)
+	}
 	rr = do(StatsPage, reqWithCookie("GET", "/stats", nil, c))
 	if rr.Code != http.StatusOK {
 		t.Errorf("with-person code = %d, want 200", rr.Code)
@@ -706,7 +714,9 @@ func TestStatsPage(t *testing.T) {
 func TestStatsAPI(t *testing.T) {
 	uid, c := authedUser(t)
 	p, _ := db.CreatePerson(uid, "st-p2", 28, 5)
-	db.CreateRecord(p.ID, "2024-01-01", nil, "")
+	if _, err := db.CreateRecord(p.ID, "2024-01-01", nil, ""); err != nil {
+		t.Fatal(err)
+	}
 
 	rr := do(StatsAPI, reqWithCookie("GET", "/api/stats", nil, c))
 	if rr.Code != http.StatusOK {
@@ -828,7 +838,9 @@ func TestNotificationTest(t *testing.T) {
 func TestNotificationStatus(t *testing.T) {
 	uid, c := authedUser(t)
 	p, _ := db.CreatePerson(uid, "ns-p", 28, 5)
-	db.CreateRecord(p.ID, "2024-01-01", nil, "")
+	if _, err := db.CreateRecord(p.ID, "2024-01-01", nil, ""); err != nil {
+		t.Fatal(err)
+	}
 
 	rr := do(NotificationStatus, reqWithCookie("GET", "/api/notify/status", nil, c))
 	if rr.Code != http.StatusOK {
@@ -968,7 +980,9 @@ func TestExportPage(t *testing.T) {
 func TestExportDownload(t *testing.T) {
 	uid, c := authedUser(t)
 	p, _ := db.CreatePerson(uid, "ex-p", 28, 5)
-	db.CreateRecord(p.ID, "2024-01-01", nil, "")
+	if _, err := db.CreateRecord(p.ID, "2024-01-01", nil, ""); err != nil {
+		t.Fatal(err)
+	}
 
 	// all
 	rr := do(ExportDownload, reqWithCookie("GET", "/export/download", nil, c))

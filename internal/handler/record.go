@@ -95,7 +95,7 @@ func RecordAPI(w http.ResponseWriter, r *http.Request) {
 
 func RecordCreate(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", 405)
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
@@ -113,7 +113,10 @@ func RecordCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	db.CreateRecord(personID, startDate, endDate, note)
+	if _, err := db.CreateRecord(personID, startDate, endDate, note); err != nil {
+		http.Error(w, "写入失败: "+err.Error(), 500)
+		return
+	}
 
 	referer := r.Header.Get("Referer")
 	if referer == "" {
@@ -124,7 +127,7 @@ func RecordCreate(w http.ResponseWriter, r *http.Request) {
 
 func RecordEdit(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", 405)
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
@@ -142,7 +145,10 @@ func RecordEdit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	db.UpdateRecord(id, startDate, endDate, note)
+	if err := db.UpdateRecord(id, startDate, endDate, note); err != nil {
+		http.Error(w, "写入失败: "+err.Error(), 500)
+		return
+	}
 
 	referer := r.Header.Get("Referer")
 	if referer == "" {
@@ -155,7 +161,10 @@ func RecordDelete(w http.ResponseWriter, r *http.Request) {
 	id, _ := strconv.ParseInt(r.FormValue("id"), 10, 64)
 
 	if id != 0 {
-		db.DeleteRecord(id)
+		if err := db.DeleteRecord(id); err != nil {
+			http.Error(w, "写入失败: "+err.Error(), 500)
+			return
+		}
 	}
 
 	referer := r.Header.Get("Referer")
