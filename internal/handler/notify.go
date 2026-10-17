@@ -34,14 +34,14 @@ func NotificationConfigAPI(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	http.Error(w, "Method not allowed", 405)
+	http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 }
 
 func NotificationTest(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	if r.Method != http.MethodPost {
-		http.Error(w, `{"error":"method not allowed"}`, 405)
+		http.Error(w, `{"error":"method not allowed"}`, http.StatusMethodNotAllowed)
 		return
 	}
 

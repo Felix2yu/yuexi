@@ -196,11 +196,14 @@ func DailyLogAPI(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, `{"error":"missing person_id or date"}`, 400)
 			return
 		}
-		db.DeleteDailyLog(personID, date)
+		if err := db.DeleteDailyLog(personID, date); err != nil {
+			http.Error(w, "写入失败: "+err.Error(), 500)
+			return
+		}
 		json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 
 	default:
-		http.Error(w, "Method not allowed", 405)
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
 }
 

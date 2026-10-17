@@ -126,7 +126,9 @@ func migrate() {
 	var count int
 	DB.QueryRow("SELECT COUNT(*) FROM notification_config").Scan(&count)
 	if count == 0 {
-		DB.Exec("INSERT INTO notification_config (user_id, enabled, notify_url, days_before) VALUES (1, 0, '', 3)")
+		if _, err := DB.Exec("INSERT INTO notification_config (user_id, enabled, notify_url, days_before) VALUES (1, 0, '', 3)"); err != nil {
+			log.Printf("初始化通知配置失败: %v", err)
+		}
 	}
 }
 
@@ -134,7 +136,9 @@ func migrateAddColumn(table, column, typedef string) {
 	var cnt int
 	err := DB.QueryRow("SELECT COUNT(*) FROM pragma_table_info(?) WHERE name=?", table, column).Scan(&cnt)
 	if err != nil || cnt == 0 {
-		DB.Exec("ALTER TABLE " + table + " ADD COLUMN " + column + " " + typedef)
+		if _, err := DB.Exec("ALTER TABLE " + table + " ADD COLUMN " + column + " " + typedef); err != nil {
+			log.Printf("为 %s 添加列 %s 失败: %v", table, column, err)
+		}
 	}
 }
 
@@ -145,7 +149,9 @@ func migrateRenameColumn(table, oldName, newName string) {
 		return
 	}
 	if cnt > 0 {
-		DB.Exec("ALTER TABLE " + table + " RENAME COLUMN " + oldName + " TO " + newName)
+		if _, err := DB.Exec("ALTER TABLE " + table + " RENAME COLUMN " + oldName + " TO " + newName); err != nil {
+			log.Printf("重命名列 %s.%s 失败: %v", table, oldName, err)
+		}
 	}
 }
 

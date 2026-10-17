@@ -46,7 +46,10 @@ func PersonCreate(w http.ResponseWriter, r *http.Request) {
 		periodLength = 5
 	}
 
-	db.CreatePerson(userID, name, cycleLength, periodLength)
+	if _, err := db.CreatePerson(userID, name, cycleLength, periodLength); err != nil {
+		http.Error(w, "写入失败: "+err.Error(), 500)
+		return
+	}
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
@@ -70,7 +73,10 @@ func PersonEdit(w http.ResponseWriter, r *http.Request) {
 			if periodLength <= 0 {
 				periodLength = 5
 			}
-			db.UpdatePerson(id, name, cycleLength, periodLength)
+			if err := db.UpdatePerson(id, name, cycleLength, periodLength); err != nil {
+				http.Error(w, "写入失败: "+err.Error(), 500)
+				return
+			}
 		}
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
@@ -103,6 +109,9 @@ func PersonDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	db.DeletePerson(id)
+	if err := db.DeletePerson(id); err != nil {
+		http.Error(w, "写入失败: "+err.Error(), 500)
+		return
+	}
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }

@@ -110,7 +110,8 @@ func GetSession(token string) (*SessionData, error) {
 	// Check if expired. Compare as time values rather than raw strings, because
 	// SQLite's DATETIME affinity may normalize the stored value (e.g. to RFC3339).
 	if sessionExpired(expiresAt) {
-		DB.Exec("DELETE FROM sessions WHERE token = ?", token)
+		// 过期会话删不掉只会留下一条无用的行，不影响本次请求
+		_, _ = DB.Exec("DELETE FROM sessions WHERE token = ?", token)
 		sessionCache.Delete(token)
 		return nil, nil
 	}
