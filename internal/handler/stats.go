@@ -106,8 +106,8 @@ func StatsAPI(w http.ResponseWriter, r *http.Request) {
 		}
 
 		stats := db.CycleStats{
-			CycleCount:  len(cycleLengths),
-			CycleLengths: cyclePoints,
+			CycleCount:    len(cycleLengths),
+			CycleLengths:  cyclePoints,
 			PeriodLengths: periodPoints,
 		}
 

@@ -22,9 +22,9 @@ func TestMain(m *testing.M) {
 
 func TestNormalizeDate(t *testing.T) {
 	cases := map[string]string{
-		"":                "",
-		"2024-01-01":      "2024-01-01",
-		"2024-01-01T10:00": "2024-01-01",
+		"":                     "",
+		"2024-01-01":           "2024-01-01",
+		"2024-01-01T10:00":     "2024-01-01",
 		"2024-01-01T23:59:59Z": "2024-01-01",
 	}
 	for in, want := range cases {

@@ -47,9 +47,9 @@ func TestSortRecordsByDate(t *testing.T) {
 func TestRangesOverlap(t *testing.T) {
 	const layout = "2006-01-02"
 	cases := []struct {
-		name                         string
-		aStart, aEnd, bStart, bEnd   string
-		want                         bool
+		name                       string
+		aStart, aEnd, bStart, bEnd string
+		want                       bool
 	}{
 		{"overlap", "2024-01-05", "2024-01-10", "2024-01-08", "2024-01-12", true},
 		{"disjoint", "2024-01-05", "2024-01-10", "2024-01-15", "2024-01-20", false},

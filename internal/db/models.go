@@ -33,8 +33,8 @@ type DateRange struct {
 }
 
 type ExportData struct {
-	Person   Person     `json:"person"`
-	Records  []Record   `json:"records"`
+	Person    Person     `json:"person"`
+	Records   []Record   `json:"records"`
 	DailyLogs []DailyLog `json:"daily_logs,omitempty"`
 }
 
@@ -51,15 +51,15 @@ type DailyLog struct {
 }
 
 type CycleStats struct {
-	AvgCycleLength  float64        `json:"avg_cycle_length"`
-	MinCycleLength  int            `json:"min_cycle_length"`
-	MaxCycleLength  int            `json:"max_cycle_length"`
-	AvgPeriodLength float64        `json:"avg_period_length"`
-	CycleCount      int            `json:"cycle_count"`
+	AvgCycleLength  float64          `json:"avg_cycle_length"`
+	MinCycleLength  int              `json:"min_cycle_length"`
+	MaxCycleLength  int              `json:"max_cycle_length"`
+	AvgPeriodLength float64          `json:"avg_period_length"`
+	CycleCount      int              `json:"cycle_count"`
 	CycleLengths    []CycleDataPoint `json:"cycle_lengths"`
 	PeriodLengths   []CycleDataPoint `json:"period_lengths"`
-	Regularity      string         `json:"regularity"`
-	SymptomCounts   map[string]int `json:"symptom_counts,omitempty"`
+	Regularity      string           `json:"regularity"`
+	SymptomCounts   map[string]int   `json:"symptom_counts,omitempty"`
 }
 
 type CycleDataPoint struct {
