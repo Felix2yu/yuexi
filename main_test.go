@@ -40,32 +40,32 @@ func TestBuildRouterRoutes(t *testing.T) {
 		{"GET", "/register"},
 		{"POST", "/register"},
 		{"POST", "/logout"},
-		{"GET", "/"},                      // protected -> redirect to /login
-		{"GET", "/person"},                // protected
-		{"POST", "/person/create"},        // protected
-		{"GET", "/person/edit"},           // protected
-		{"POST", "/person/edit"},          // protected
-		{"POST", "/person/delete"},        // protected
-		{"GET", "/settings"},              // protected
-		{"GET", "/settings/password"},     // protected
-		{"POST", "/settings/password"},    // protected
-		{"POST", "/record/create"},        // protected
-		{"POST", "/record/edit"},          // protected
-		{"POST", "/record/delete"},        // protected
-		{"GET", "/api/records"},           // protected
-		{"GET", "/export"},                // protected
-		{"GET", "/export/download"},       // protected
-		{"POST", "/import"},               // protected
-		{"GET", "/api/notification"},      // protected
-		{"POST", "/api/notification"},     // protected
-		{"POST", "/api/notification/test"},// protected
-		{"GET", "/api/notification/status"},// protected
-		{"GET", "/api/anomaly"},           // protected
-		{"GET", "/stats"},                 // protected
-		{"GET", "/api/stats"},             // protected
-		{"GET", "/api/daily/"},            // protected
-		{"POST", "/api/daily/"},           // protected
-		{"DELETE", "/api/daily/"},         // protected
+		{"GET", "/"},                        // protected -> redirect to /login
+		{"GET", "/person"},                  // protected
+		{"POST", "/person/create"},          // protected
+		{"GET", "/person/edit"},             // protected
+		{"POST", "/person/edit"},            // protected
+		{"POST", "/person/delete"},          // protected
+		{"GET", "/settings"},                // protected
+		{"GET", "/settings/password"},       // protected
+		{"POST", "/settings/password"},      // protected
+		{"POST", "/record/create"},          // protected
+		{"POST", "/record/edit"},            // protected
+		{"POST", "/record/delete"},          // protected
+		{"GET", "/api/records"},             // protected
+		{"GET", "/export"},                  // protected
+		{"GET", "/export/download"},         // protected
+		{"POST", "/import"},                 // protected
+		{"GET", "/api/notification"},        // protected
+		{"POST", "/api/notification"},       // protected
+		{"POST", "/api/notification/test"},  // protected
+		{"GET", "/api/notification/status"}, // protected
+		{"GET", "/api/anomaly"},             // protected
+		{"GET", "/stats"},                   // protected
+		{"GET", "/api/stats"},               // protected
+		{"GET", "/api/daily/"},              // protected
+		{"POST", "/api/daily/"},             // protected
+		{"DELETE", "/api/daily/"},           // protected
 		{"GET", "/manifest.json"},
 		{"GET", "/sw.js"},
 		{"GET", "/icon-192.png"},

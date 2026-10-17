@@ -28,8 +28,8 @@ func init() {
 
 // Login rate limiting
 type loginAttempt struct {
-	count    int
-	lastTry  time.Time
+	count        int
+	lastTry      time.Time
 	blockedUntil time.Time
 }
 
@@ -151,8 +151,8 @@ func RegisterPage(w http.ResponseWriter, r *http.Request) {
 	}
 	tmpl, _ := parseTemplates("layout.html", "register.html")
 	tmpl.ExecuteTemplate(w, "layout", map[string]interface{}{
-		"Error":         r.URL.Query().Get("error"),
-		"UserCount":     db.UserCount(),
+		"Error":     r.URL.Query().Get("error"),
+		"UserCount": db.UserCount(),
 	})
 }
 
