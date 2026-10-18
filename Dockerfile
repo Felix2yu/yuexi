@@ -7,7 +7,9 @@ FROM ghcr.io/felix2yu/base:alpine-3.24
 
 WORKDIR /app
 
-COPY --chmod=755 bin/yuexi /app/yuexi
+# 二进制装进 /usr/local/bin（基镜契约），而不是 /app：装在 /app 时它不在 PATH 上，
+# `docker exec <c> yuexi backup` 与「按镜像名推导导出命令」都解析不到。
+COPY --chmod=755 bin/yuexi /usr/local/bin/yuexi
 
 RUN mkdir -p /app/data
 
@@ -23,4 +25,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
   CMD wget -qO- http://localhost:8080/health || exit 1
 
 # ENTRYPOINT 由基镜提供（PUID/PGID 降权），这里只给服务命令
-CMD ["/app/yuexi"]
+CMD ["yuexi"]
