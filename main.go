@@ -112,11 +112,26 @@ func (s *statusRecorder) WriteHeader(code int) {
 	s.ResponseWriter.WriteHeader(code)
 }
 
-func main() {
-	dbPath := "data/yuexi.db"
+// dbPathFromEnv 返回 SQLite 数据文件路径，主进程与 backup 子命令共用。
+func dbPathFromEnv() string {
 	if p := os.Getenv("YUEXI_DB_PATH"); p != "" {
-		dbPath = p
+		return p
 	}
+	return "data/yuexi.db"
+}
+
+func main() {
+	// 外部备份工具（docker-db-auto-backup 等）经 docker exec 调用 `yuexi backup`，
+	// 把一致性快照写到 stdout。必须在这里拦截、早于一切初始化：导出进程不建目录、
+	// 不跑迁移、不起后台任务，只做这一件事。
+	if len(os.Args) > 1 && os.Args[1] == "backup" {
+		if err := runBackup(os.Stdout); err != nil {
+			log.Fatalf("备份导出失败: %v", err)
+		}
+		return
+	}
+
+	dbPath := dbPathFromEnv()
 
 	db.Init(dbPath)
 	defer db.Close()
