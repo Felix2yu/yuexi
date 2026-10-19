@@ -43,12 +43,13 @@ go build -o yuexi .
 docker build -t yuexi .
 # BACKUP_SQLITE_CMD：向外部备份工具（docker-db-auto-backup）声明自导出命令，
 # 工具经 docker exec 在容器内执行它，stdout 即 .db 一致性快照产物。
+# 命令写绝对路径：镜像把二进制放在 /app，而 /app 不在容器 PATH 上。
 # PUID/PGID 由基础镜像提供，exec 身份自动推导，无需 BACKUP_SQLITE_USER。
 docker run -d -p 8080:8080 -v "$(pwd)/data:/app/data" \
-  -e BACKUP_SQLITE_CMD="yuexi backup" yuexi
+  -e BACKUP_SQLITE_CMD="/app/yuexi backup" yuexi
 
 # 手动导出同一份快照（与备份工具走完全相同的路径）：
-docker exec <容器名> yuexi backup > yuexi-$(date +%F).db
+docker exec <容器名> /app/yuexi backup > yuexi-$(date +%F).db
 ```
 
 ## 配置
