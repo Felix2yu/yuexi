@@ -3,7 +3,7 @@ module yuexi
 go 1.27
 
 require (
-	github.com/go-chi/chi/v5 v5.4.0
+	github.com/go-chi/chi/v5 v5.5.0
 	github.com/unraid/apprise-go v0.3.3
 	golang.org/x/crypto v0.58.0
 	modernc.org/sqlite v1.60.1
